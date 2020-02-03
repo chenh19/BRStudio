@@ -465,7 +465,7 @@ file.move(aligns, "./cache/l_variants_aligns", overwrite=TRUE)
 rm("cDrv", "eCaps", "table", "table0", "table1", "tables", "elem", "elemtxt", "elemxml", "filename", 
    "snpurl", "remDr", "rsID", "rsIDs", "csv1", "txt", "new", "align", "aligns", "error")
 print("Most updated SNP info retrived")
-Sys.sleep(4)
+Sys.sleep(10)
 
 
 # Trim NCBI SNP info
