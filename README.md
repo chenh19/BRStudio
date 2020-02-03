@@ -14,6 +14,7 @@ Current version: v1.0.0
 
 ## Running the script
 - This script exploits multiple threads for parallel computing.  
+- This script automatically retrives variant info from GnomAD, NCBI SNP, Provean and PolyPhen.  
 - You may run it with multiple panel files, but all of which should be formatted to 4 columns: "Gene", "Transcript ID", "Protein ID", "Protein ID for PP2".  
 - You may run it with multiple pool files, but all of which should be formatted to 2 columns: "Sample", "Diagnosis".    
 - This script will only process ".genome.vcf" files. If other vcf files are found, they will not be processed but only be archived.  
