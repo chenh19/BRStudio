@@ -930,7 +930,7 @@ now <- Sys.time()
 filename <- paste0(format(now, "%Y-%m-%d_%H-%M-%S_"), "BRStudio_export.xlsx")
 sheets <- list("Summary" = csv1, "AF<0.5%"= csv2, "0.5%<AF<1%" = csv3, "Re-run" = csv4)
 write_xlsx(sheets, filename)
-file.move("all.csv", "./cache/s_all_mere", overwrite=TRUE)
+file.move("all.csv", "./cache/s_all_merge", overwrite=TRUE)
 rm("csv1", "csv2", "csv3", "csv4", "samples", "samplecount", "variantcount", "colnames", 
    "sheets", "now", "panel", "pool", "numCores", "filename", "samplesinthisbatch")
 print("All done! Good luck analysing!")
