@@ -12,11 +12,11 @@ This script has been tested under ubuntu 19.10. To set up the environment with t
 If you are using it under other systems, please make sure that all packages are properly installed.  
 
 ## Running the script
-This script exploits multiple threads for parallel computing. The more CPU cores the better.  
-You may run it with multiple panel files, but all of which should be formatted to 4 columns: "Gene", "Transcript ID", "Protein ID", "Protein ID for PP2".  
-You may run it with multiple pool files, but all of which should be formatted to 2 columns: "Sample", "Diagnosis".    
-This script will only process ".genome.vcf" files. If other vcf files are found, they will not be processed but only be archived.  
-Running no more than 96 samples in each batch is recommended.  
-For each batch, 20 to 30 minutes might be required, please make sure that your computer/server won't go to sleep.  
-Put ".panel.xlsx", ".pool.xlsx", and ".vcf.gz" files in the same folder with this script.  
-Open the script directly from the parent folder with RStudio to start (just click the "Source" button).  
+- This script exploits multiple threads for parallel computing. The more CPU cores the better.  
+- You may run it with multiple panel files, but all of which should be formatted to 4 columns: "Gene", "Transcript ID", "Protein ID", "Protein ID for PP2".  
+- You may run it with multiple pool files, but all of which should be formatted to 2 columns: "Sample", "Diagnosis".    
+- This script will only process ".genome.vcf" files. If other vcf files are found, they will not be processed but only be archived.  
+- Running no more than 96 samples in each batch is recommended.  
+- For each batch, 20 to 30 minutes might be required, please make sure that your computer/server won't go to sleep.  
+- Put ".panel.xlsx", ".pool.xlsx", and ".vcf.gz" files in the same folder with this script.  
+- Open the script directly from the parent folder with RStudio to start (just click the "Source" button).  
