@@ -1,6 +1,6 @@
 # BRStudio
 **An automated NGS data analyzing tool from [Braunstein Lab](http://www.braunstein.team/).**  
-Current version: v1.0.0
+Current version: v1.0.2
 
 ## Setting up the environment
 - This script has been tested under ubuntu 19.10. To set up the environment with terminal:  
