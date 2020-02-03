@@ -13,7 +13,7 @@ Current version: v1.0.0
 - If you are using it under other systems, please make sure that all packages are properly installed.  
 
 ## Running the script
-- This script exploits multiple threads for parallel computing. The more CPU cores the better.  
+- This script exploits multiple threads for parallel computing.  
 - You may run it with multiple panel files, but all of which should be formatted to 4 columns: "Gene", "Transcript ID", "Protein ID", "Protein ID for PP2".  
 - You may run it with multiple pool files, but all of which should be formatted to 2 columns: "Sample", "Diagnosis".    
 - This script will only process ".genome.vcf" files. If other vcf files are found, they will not be processed but only be archived.  
