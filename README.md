@@ -1,5 +1,5 @@
 # BRStudio
-**An automated NGS data analyzing tool.**  
+**An automated NGS data analyzing tool from [Braunstein Lab](http://www.braunstein.team/).**  
 Current version: v1.0.0
 
 ## Setting up the environment
