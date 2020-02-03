@@ -933,6 +933,5 @@ write_xlsx(sheets, filename)
 file.move("all.csv", "./cache/s_all_mere", overwrite=TRUE)
 rm("csv1", "csv2", "csv3", "csv4", "samples", "samplecount", "variantcount", "colnames", 
    "sheets", "now", "panel", "pool", "numCores", "filename", "samplesinthisbatch")
-rm()
 print("All done! Good luck analysing!")
 Sys.sleep(1)
