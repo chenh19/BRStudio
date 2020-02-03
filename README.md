@@ -1,7 +1,7 @@
 # BRStudio
 An automated NGS data analyzing tool.
 
-## Setting up running environment
+## Setting up the environment
 - This script has been tested under ubuntu 19.10. To set up the environment with terminal:  
 ```
   sudo apt update && sudo apt install r-base r-cran-rjava -y  
