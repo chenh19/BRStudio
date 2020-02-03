@@ -2,14 +2,14 @@
 An automated NGS data analyzing tool.
 
 ## Setting up running environment
-This script has been tested under ubuntu 19.10. To set up the environment with terminal:  
-(```)
+- This script has been tested under ubuntu 19.10. To set up the environment with terminal:  
+(```
   sudo apt update && sudo apt install r-base r-cran-rjava -y  
   sudo apt install libxml2-dev libssl-dev libcurl4-openssl-dev libxml2-dev -y  
   sudo -i R  
   install.packages(c("expss", "XML", "vcfR", "foreach", "doParallel", "R.utils", "RSelenium","readr", "dplyr", "tidyr", "filesstrings","readxl", "writexl", "wdman", "stringr", "stringi", "rlang"))  
-(```)
-If you are using it under other systems, please make sure that all packages are properly installed.  
+```)
+- If you are using it under other systems, please make sure that all packages are properly installed.  
 
 ## Running the script
 - This script exploits multiple threads for parallel computing. The more CPU cores the better.  
