@@ -21,4 +21,4 @@ Current version: v1.0.2
 - Running no more than 96 samples in each batch is recommended.  
 - For each batch, 20 to 30 minutes might be required, please make sure that your computer/server won't go to sleep.  
 - Put ".panel.xlsx", ".pool.xlsx", and ".vcf.gz" files in the same folder with this script.  
-- Open the script directly from the parent folder with RStudio to start.  
+- Open the script directly from the parent folder with [RStudio](https://rstudio.com/products/rstudio/) to start.  
