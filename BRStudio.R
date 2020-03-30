@@ -330,7 +330,7 @@ registerDoParallel(numCores)
 foreach (chr = chrs) %dopar% {
   csv2 <- filter(csv1, CHROM == chr)
     if(nrow(csv2)>1){
-      csv2 <- csv1[c("Sample", "Variant", "ID", "QUAL", "FILTER", "Genotype", "Genotype_Quality", 
+      csv2 <- csv2[c("Sample", "Variant", "ID", "QUAL", "FILTER", "Genotype", "Genotype_Quality", 
                      "Allele_Deapth", "Total_Depth", "Variant_Frequency", "NoiseLevel", "StrandBias", 
                      "Uncalled", "INFO")]
       csv2$"Sample" <- gsub('_S1', '', csv2$"Sample")
