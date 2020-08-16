@@ -1,19 +1,6 @@
 # BRStudio v1.1.0
 # This script exploits multiple threads for parallel computing
-# This script has been tested under ubuntu 19.10. To set up the environment with terminal:
-  # sudo apt install dirmngr gnupg apt-transport-https ca-certificates software-properties-common
-  # sudo apt-key adv --keyserver keyserver.ubuntu.com --recv-keys E298A3A825C0D65DFD57CBB651716619E084DAB9
-  # sudo add-apt-repository 'deb https://cloud.r-project.org/bin/linux/ubuntu focal-cran40/'
-  # sudo apt update && sudo apt install r-base libxml2-dev libssl-dev libcurl4-openssl-dev libxml2-dev -y
-  # sudo -i R
-  # if (!requireNamespace("BiocManager", quietly = TRUE))
-    install.packages("BiocManager")
-  # BiocManager::install("GenomicRanges")
-  # install.packages(c("devtools", "expss", "foreach", "doParallel", "R.utils", "readr", "dplyr", "tidyr", "filesstrings","readxl", "writexl", "wdman", "stringr", "stringi", "rlang"))
-  # install.packages("XML")
-  # install.packages("RSelenium")
-  # devtools::install_github(repo="knausb/vcfR")
-# If you are using it under other systems, please make sure that all packages are properly installed
+# This script has been tested under Pop1_OS 20.04. If you are using it under other systems, please make sure that all packages are properly installed
 # You may run it with multiple panel files, but all of which should be formatted to 4 columns: Gene, Transcript ID, Protein ID, Protein ID for PP2
 # You may run it with multiple pool files, but all of which should be formatted to 2 columns: Sample, Diagnosis
 # This script will only process ".genome.vcf" files. If other vcf files are found, they will not be processed but only be archived
