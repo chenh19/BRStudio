@@ -1,4 +1,4 @@
-# BRStudio v1.0.2
+# BRStudio v1.1.0
 # This script exploits multiple threads for parallel computing
 # This script has been tested under ubuntu 19.10. To set up the environment with terminal:
   # sudo apt install dirmngr gnupg apt-transport-https ca-certificates software-properties-common
