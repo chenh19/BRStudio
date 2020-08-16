@@ -83,7 +83,7 @@ Sys.sleep(1)
 
 # Retrive variant info from GnomAD v2.1
 print("Downloading ref library for each gene...(this might take a while)")
-cDrv <- chrome(version = "79.0.3945.36", verbose = FALSE) # binman::list_versions("chromedriver")
+cDrv <- chrome(version = "84.0.4147.30", verbose = FALSE) # binman::list_versions("chromedriver")
 eCaps <- list(
   chromeOptions = list(
     args = c('--headless', '--disable-gpu', '--window-size=1280,800'), # '--headless', 
@@ -399,7 +399,7 @@ aligns <- list.files(pattern=".align.csv")
 for (align in aligns) {
   rsIDs <- read.csv(align)[, "rsID"]
   rsIDs <- rsIDs[!is.na(rsIDs)]
-  cDrv <- chrome(version = "79.0.3945.36", verbose = FALSE) # binman::list_versions("chromedriver")
+  cDrv <- chrome(version = "84.0.4147.30", verbose = FALSE) # binman::list_versions("chromedriver")
   eCaps <- list(
     chromeOptions = list(
       args = c('--headless', '--disable-gpu', '--window-size=1280,800'), # '--headless', 
@@ -727,7 +727,7 @@ rm("pro", "pro_provean", "pro_polyphen", "tra", "tra_provean", "tra_polyphen", "
 
 # Prediction
 print("Performing variant prediction...")
-cDrv <- chrome(version = "79.0.3945.36", verbose = FALSE) # binman::list_versions("chromedriver")
+cDrv <- chrome(version = "84.0.4147.30", verbose = FALSE) # binman::list_versions("chromedriver")
 eCaps <- list(
   chromeOptions = list(
     args = c('--headless', '--disable-gpu', '--window-size=1280,800'), # '--headless', 
