@@ -1,10 +1,18 @@
 # BRStudio v1.0.2
 # This script exploits multiple threads for parallel computing
 # This script has been tested under ubuntu 19.10. To set up the environment with terminal:
-  # sudo apt update && sudo apt install r-base r-cran-rjava -y
-  # sudo apt install libxml2-dev libssl-dev libcurl4-openssl-dev libxml2-dev -y
+  # sudo apt install dirmngr gnupg apt-transport-https ca-certificates software-properties-common
+  # sudo apt-key adv --keyserver keyserver.ubuntu.com --recv-keys E298A3A825C0D65DFD57CBB651716619E084DAB9
+  # sudo add-apt-repository 'deb https://cloud.r-project.org/bin/linux/ubuntu focal-cran40/'
+  # sudo apt update && sudo apt install r-base libxml2-dev libssl-dev libcurl4-openssl-dev libxml2-dev -y
   # sudo -i R
-  # install.packages(c("expss", "XML", "vcfR", "foreach", "doParallel", "R.utils", "RSelenium","readr", "dplyr", "tidyr", "filesstrings","readxl", "writexl", "wdman", "stringr", "stringi", "rlang"))
+  # if (!requireNamespace("BiocManager", quietly = TRUE))
+    install.packages("BiocManager")
+  # BiocManager::install("GenomicRanges")
+  # install.packages(c("devtools", "expss", "foreach", "doParallel", "R.utils", "readr", "dplyr", "tidyr", "filesstrings","readxl", "writexl", "wdman", "stringr", "stringi", "rlang"))
+  # install.packages("XML")
+  # install.packages("RSelenium")
+  # devtools::install_github(repo="knausb/vcfR")
 # If you are using it under other systems, please make sure that all packages are properly installed
 # You may run it with multiple panel files, but all of which should be formatted to 4 columns: Gene, Transcript ID, Protein ID, Protein ID for PP2
 # You may run it with multiple pool files, but all of which should be formatted to 2 columns: Sample, Diagnosis
@@ -17,7 +25,7 @@
 
 # Load R packages
 lapply(c("XML", "vcfR", "parallel", "foreach", "doParallel", "R.utils", "RSelenium", "expss", "rlang", "readr", 
-               "dplyr", "tidyr", "filesstrings", "readxl", "writexl", "wdman", "stringr", "stringi"), 
+               "dplyr", "tidyr", "filesstrings", "readxl", "writexl", "wdman", "stringr", "stringi", "GenomicRanges"), 
              require, character.only = TRUE)
 print("Welcome to BRStudio, the system is loading...")
 
