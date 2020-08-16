@@ -3,8 +3,9 @@
 *Current version: v1.1.0*
 
 ## Setting up the environment
-- This script has been tested under ubuntu 19.10. To set up the environment with terminal:  
+- This script has been tested under [Pop!OS 20.04](https://pop.system76.com/). To set up the environment with terminal:  
 ```
+  sudo apt update && sudo apt upgrade -y
   sudo apt install dirmngr gnupg apt-transport-https ca-certificates software-properties-common
   sudo apt-key adv --keyserver keyserver.ubuntu.com --recv-keys E298A3A825C0D65DFD57CBB651716619E084DAB9
   sudo add-apt-repository 'deb https://cloud.r-project.org/bin/linux/ubuntu focal-cran40/'
