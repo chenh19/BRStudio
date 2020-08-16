@@ -9,7 +9,9 @@
   sudo apt install dirmngr gnupg apt-transport-https ca-certificates software-properties-common
   sudo apt-key adv --keyserver keyserver.ubuntu.com --recv-keys E298A3A825C0D65DFD57CBB651716619E084DAB9
   sudo add-apt-repository 'deb https://cloud.r-project.org/bin/linux/ubuntu focal-cran40/'
-  sudo apt update && sudo apt install r-base libxml2-dev libssl-dev libcurl4-openssl-dev libxml2-dev -y
+  sudo apt update && sudo apt install r-base-y
+  sudo apt build-dep r-cran-rjava -y
+  sudo apt install libxml2-dev libssl-dev libcurl4-openssl-dev libxml2-dev -y
   sudo -i R
   if (!requireNamespace("BiocManager", quietly = TRUE))
     install.packages("BiocManager")
