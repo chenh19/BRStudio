@@ -17,7 +17,7 @@
     install.packages("BiocManager")
   BiocManager::install("GenomicRanges")
   install.packages("devtools")
-  install.packages(c("RSelenium", "expss", "foreach", "doParallel", "R.utils", "readr", "dplyr", "tidyr", "filesstrings","readxl", "writexl", "wdman", "stringr", "stringi"))
+  install.packages(c("RSelenium", "expss", "foreach", "doParallel", "R.utils", "readr", "dplyr", "tidyr", "filesstrings","readxl", "writexl", "wdman", "stringr", "stringi", "vcfR"))
 ```
 - If you are using it under other systems, please make sure that all packages are properly installed.  
 
