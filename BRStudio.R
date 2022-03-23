@@ -1,7 +1,7 @@
-# BRStudio v1.1.0
+# BRStudio v2.0.0
 # This script exploits multiple threads for parallel computing
 # This script has been tested under Pop!_OS 20.04. If you are using it under other systems, please make sure that all packages are properly installed
-# You may run it with multiple panel files, but all of which should be formatted to 4 columns: Gene, Transcript ID, Protein ID, Protein ID for PP2
+# You may run it with multiple panel files, but all of which should be formatted to 4 columns: Gene, Transcript_ID, Protein_ID, Protein_ID_for_PP2
 # You may run it with multiple pool files, but all of which should be formatted to 2 columns: Sample, Diagnosis
 # This script will only process ".genome.vcf" files. If other vcf files are found, they will not be processed but only be archived
 # Running no more than 96 samples in each batch is recommended
@@ -42,16 +42,21 @@ if (is_empty(panelfiles)==FALSE){
   panel <- panel %>% 
     group_by(Gene) %>% 
     summarise_all(funs(trimws(paste(., collapse = ''))))
-  panel$"Transcript ID" <- gsub('NA', '', panel$"Transcript ID")
-  panel$"Protein ID" <- gsub('NA', '', panel$"Protein ID")
-  panel$"Protein ID for PP2" <- gsub('NA', '', panel$"Protein ID for PP2")
-  panel <- panel[c("Gene", "Transcript ID", "Protein ID", "Protein ID for PP2")]
+  panel$"Transcript_ID" <- gsub('NA', '', panel$"Transcript_ID")
+  panel$"Protein_ID" <- gsub('NA', '', panel$"Protein_ID")
+  panel$"Protein_ID_for_PP2" <- gsub('NA', '', panel$"Protein_ID_for_PP2")
+  panel$"ENSG_ID" <- gsub('NA', '', panel$"ENSG_ID")
+  panel <- panel[c("Gene", "Transcript_ID", "Protein_ID", "Protein_ID_for_PP2", "ENSG_ID")]
   write.table(panel, file="all.panel.csv", sep=",", row.names = FALSE)
   registerDoParallel(numCores)
   foreach (panelfile = panelfiles) %dopar% {
     file.move(panelfile, "./original_files/a_panel_files", overwrite=TRUE)
   }
   genes <- read.csv("all.panel.csv")[,"Gene"]
+  #ensg <- read.csv("all.panel.csv")[,"ENSG_ID"]
+  genes <- split(genes, ceiling(seq_along(genes)/5))
+  #ensg <- split(genes, ceiling(seq_along(genes)/5))
+  
   panel <- read.csv("all.panel.csv")
   file.move("all.panel.csv", "./cache/a_gene_panel", overwrite=TRUE)
   print(paste("All panels loaded:", nrow(panel), "genes in total"))
@@ -81,86 +86,124 @@ rm("poolfiles")
 Sys.sleep(1)
 
 
-# Retrive variant info from GnomAD v2.1
+# Retrieve variant info from GnomAD v2.1
 print("Downloading ref library for each gene...(this might take a while)")
-cDrv <- chrome(version = "84.0.4147.30", verbose = FALSE) # binman::list_versions("chromedriver")
-eCaps <- list(
-  chromeOptions = list(
-    args = c('--headless', '--disable-gpu', '--window-size=1280,800'), # '--headless', 
-    prefs = list(
-      "profile.default_content_settings.popups" = 0L,
-      "download.prompt_for_download" = FALSE,
-      "download.default_directory" = "."
+for (i in genes){
+  cDrv <- chrome(version = "99.0.4844.51", verbose = FALSE) # binman::list_versions("chromedriver")
+  eCaps <- list(
+    chromeOptions = list(
+      args = c('--headless', '--disable-gpu', '--window-size=1280,800'), # '--headless', 
+      prefs = list(
+        "profile.default_content_settings.popups" = 0L,
+        "download.prompt_for_download" = FALSE,
+        "download.default_directory" = "."
+      )
     )
   )
-)
-remDr <- remoteDriver(browserName = "chrome", port = 4567L, extraCapabilities = eCaps)
-remDr$open()
-remDr$setTimeout(type = "implicit", milliseconds = 20000)
-remDr$setTimeout(type = "page load", milliseconds = 20000)
-for (gene in genes){
-  geneurl <- paste0("https://gnomad.broadinstitute.org/gene/", gene, "?dataset=gnomad_r2_1")
-  remDr$navigate(geneurl) # remDr$getCurrentUrl()
-  csv_link <- remDr$findElement(using="xpath", "//button[contains(.,'Export variants to CSV')]")
-  Sys.sleep(2)
-  csv_link$clickElement()
-  Sys.sleep(2)
-  reffile <- list.files(pattern=".csv")
-  if (is_empty(reffile)==FALSE){
-    filename <- paste0(gene, ".ref")
-    file.rename(reffile, filename)
+  remDr <- remoteDriver(browserName = "chrome", port = 4567L, extraCapabilities = eCaps)
+  remDr$open()
+  remDr$setTimeout(type = "implicit", milliseconds = 50000)
+  remDr$setTimeout(type = "page load", milliseconds = 50000)
+  
+  for (gene in i){
+    ensg_id <- panel[panel$Gene == gene,]$ENSG_ID
+    geneurl <- paste0("https://gnomad.broadinstitute.org/gene/", ensg_id) # , "?dataset=gnomad_r2_1")
+    remDr$navigate(geneurl) # remDr$getCurrentUrl()
+    csv_link <- remDr$findElement(using="xpath", "//button[contains(.,'Export variants to CSV')]")
+    Sys.sleep(2)
+    csv_link$clickElement()
+    Sys.sleep(2)
+    reffile <- list.files(pattern=".csv")
+    if (is_empty(reffile)==FALSE){
+      filename <- paste0(gene, ".ref")
+      file.rename(reffile, filename)
+    }
   }
+  remDr$navigate("https://gnomad.broadinstitute.org/")
+  remDr$close()
+  cDrv$stop()
+  Sys.sleep(10)
 }
-remDr$navigate("https://gnomad.broadinstitute.org/")
-remDr$close()
-cDrv$stop()
 reffiles <- list.files(pattern=".ref")
 registerDoParallel(numCores)
 foreach (reffile = reffiles) %dopar% {
   filename <- paste0(reffile, ".csv")
   file.rename(reffile, filename)
 }
-rm("cDrv", "eCaps", "remDr", "gene", "genes", "geneurl", "filename", "csv_link")
+rm("cDrv", "eCaps", "remDr", "gene", "genes", "geneurl", "filename", "csv_link", "i","ensg_id")
 print("Ref library for each gene is downloaded")
 Sys.sleep(10)
 
 
 # Organize variant ref info
+nans <- read.csv("NANS.ref.csv", header = TRUE, na.strings=c("","NA"))
+ash_jew <- c("Allele_Count_Ashkenazi_Jewish", "Allele_Number_Ashkenazi_Jewish", "Homozygote_Count_Ashkenazi_Jewish", "Hemizygote_Count_Ashkenazi_Jewish")
+nans[ , ash_jew] <- 0
+nans[,"Allele_Number_Ashkenazi_Jewish"] <-1
+colnames(nans) <- c("Chromosome", "Position", "rsID", "Reference", "Alternate", "Source", "Filters_exomes", "Filters_genomes", "Transcript",
+                    "HGVS_Consequence", "Protein_Consequence", "Transcript_Consequence", "VEP_Annotation", "ClinVar_Clinical_Significance", "ClinVar_Variation_ID", "Flags", 
+                    "Allele_Count", "Allele_Number", "Allele_Frequency", "Homozygote_Count", "Hemizygote_Count", 
+                    "Allele_Count_African_African_American", "Allele_Number_African_African_American", "Homozygote_Count_African_African_American", "Hemizygote_Count_African_African_American", 
+                    "Allele_Count_Latino_Admixed_American", "Allele_Number_Latino_Admixed_American", "Homozygote_Count_Latino_Admixed_American", "Hemizygote_Count_Latino_Admixed_American", 
+                    "Allele_Count_East_Asian", "Allele_Number_East_Asian", "Homozygote_Count_East_Asian", "Hemizygote_Count_East_Asian", 
+                    "Allele_Count_European_Finnish", "Allele_Number_European_Finnish", "Homozygote_Count_European_Finnish", "Hemizygote_Count_European_Finnish", 
+                    "Allele_Count_European_non_Finnish", "Allele_Number_European_non_Finnish", "Homozygote_Count_European_non_Finnish", "Hemizygote_Count_European_non_Finnish", 
+                    "Allele_Count_Other", "Allele_Number_Other", "Homozygote_Count_Other", "Hemizygote_Count_Other", 
+                    "Allele_Count_South_Asian", "Allele_Number_South_Asian", "Homozygote_Count_South_Asian", "Hemizygote_Count_South_Asian",
+                    "Allele_Count_Ashkenazi_Jewish", "Allele_Number_Ashkenazi_Jewish", "Homozygote_Count_Ashkenazi_Jewish", "Hemizygote_Count_Ashkenazi_Jewish")
+nans <- nans[c("Chromosome", "Position", "rsID", "Reference", "Alternate", "Source", "Filters_exomes", "Filters_genomes", "Transcript",
+               "HGVS_Consequence", "Protein_Consequence", "Transcript_Consequence", "VEP_Annotation", "ClinVar_Clinical_Significance", "ClinVar_Variation_ID", "Flags", 
+               "Allele_Count", "Allele_Number", "Allele_Frequency", "Homozygote_Count", "Hemizygote_Count", 
+               "Allele_Count_African_African_American", "Allele_Number_African_African_American", "Homozygote_Count_African_African_American", "Hemizygote_Count_African_African_American", 
+               "Allele_Count_Latino_Admixed_American", "Allele_Number_Latino_Admixed_American", "Homozygote_Count_Latino_Admixed_American", "Hemizygote_Count_Latino_Admixed_American", 
+               "Allele_Count_Ashkenazi_Jewish", "Allele_Number_Ashkenazi_Jewish", "Homozygote_Count_Ashkenazi_Jewish", "Hemizygote_Count_Ashkenazi_Jewish", 
+               "Allele_Count_East_Asian", "Allele_Number_East_Asian", "Homozygote_Count_East_Asian", "Hemizygote_Count_East_Asian", 
+               "Allele_Count_European_Finnish", "Allele_Number_European_Finnish", "Homozygote_Count_European_Finnish", "Hemizygote_Count_European_Finnish", 
+               "Allele_Count_European_non_Finnish", "Allele_Number_European_non_Finnish", "Homozygote_Count_European_non_Finnish", "Hemizygote_Count_European_non_Finnish", 
+               "Allele_Count_Other", "Allele_Number_Other", "Homozygote_Count_Other", "Hemizygote_Count_Other", 
+               "Allele_Count_South_Asian", "Allele_Number_South_Asian", "Homozygote_Count_South_Asian", "Hemizygote_Count_South_Asian")]
+write.table(nans, file="NANS.ref.csv", sep=",", row.names = FALSE)
+
+
 reffiles <- list.files(pattern='.ref.csv')
 registerDoParallel(numCores)
 foreach (reffile = reffiles) %dopar% {
   csv1 <- read.csv(reffile, header = TRUE, na.strings=c("","NA"))
-  colnames(csv1) <- c("Chromosome", "Position", "rsID", "Reference", "Alternate", "Source", "Filters_exomes", "Filters_genomes", 
-                      "Consequence", "Protein_Consequence", "Transcript_Consequence", "Annotation", "Flags", 
+  colnames(csv1) <- c("Chromosome", "Position", "rsID", "Reference", "Alternate", "Source", "Filters_exomes", "Filters_genomes", "Transcript",
+                      "HGVS_Consequence", "Protein_Consequence", "Transcript_Consequence", "VEP_Annotation", "ClinVar_Clinical_Significance", "ClinVar_Variation_ID", "Flags", 
                       "Allele_Count", "Allele_Number", "Allele_Frequency", "Homozygote_Count", "Hemizygote_Count", 
-                      "Allele_Count_African", "Allele_Number_African", "Homozygote_Count_African", "Hemizygote_Count_African", 
-                      "Allele_Count_Latino", "Allele_Number_Latino", "Homozygote_Count_Latino", "Hemizygote_Count_Latino", 
+                      "Allele_Count_African_African_American", "Allele_Number_African_African_American", "Homozygote_Count_African_African_American", "Hemizygote_Count_African_African_American", 
+                      "Allele_Count_Latino_Admixed_American", "Allele_Number_Latino_Admixed_American", "Homozygote_Count_Latino_Admixed_American", "Hemizygote_Count_Latino_Admixed_American", 
                       "Allele_Count_Ashkenazi_Jewish", "Allele_Number_Ashkenazi_Jewish", "Homozygote_Count_Ashkenazi_Jewish", "Hemizygote_Count_Ashkenazi_Jewish", 
                       "Allele_Count_East_Asian", "Allele_Number_East_Asian", "Homozygote_Count_East_Asian", "Hemizygote_Count_East_Asian", 
                       "Allele_Count_European_Finnish", "Allele_Number_European_Finnish", "Homozygote_Count_European_Finnish", "Hemizygote_Count_European_Finnish", 
                       "Allele_Count_European_non_Finnish", "Allele_Number_European_non_Finnish", "Homozygote_Count_European_non_Finnish", "Hemizygote_Count_European_non_Finnish", 
                       "Allele_Count_Other", "Allele_Number_Other", "Homozygote_Count_Other", "Hemizygote_Count_Other", 
                       "Allele_Count_South_Asian", "Allele_Number_South_Asian", "Homozygote_Count_South_Asian", "Hemizygote_Count_South_Asian")
+
   csv1$Gene <- rep(reffile,nrow(csv1))
   csv1$Gene <- gsub('.ref.csv', '', csv1$Gene)
+  
   csv1$Variant <- paste0(csv1$Chromosome, "-", csv1$Position, "-", csv1$Reference, "-", csv1$Alternate)
   csv1 <- mutate(csv1, Global_AF=Allele_Count/Allele_Number)
-  csv1 <- mutate(csv1, African_AF=Allele_Count_African/Allele_Number_African)
-  csv1 <- mutate(csv1, Latino_AF=Allele_Count_Latino/Allele_Number_Latino)
+  csv1 <- mutate(csv1, African_African_American_AF=Allele_Count_African_African_American/Allele_Number_African_African_American)
+  csv1 <- mutate(csv1, Latino_Admixed_American_AF=Allele_Count_Latino_Admixed_American/Allele_Number_Latino_Admixed_American)
   csv1 <- mutate(csv1, Ashkenazi_Jewish_AF=Allele_Count_Ashkenazi_Jewish/Allele_Number_Ashkenazi_Jewish)
   csv1 <- mutate(csv1, East_Asian_AF=Allele_Count_East_Asian/Allele_Number_East_Asian)
   csv1 <- mutate(csv1, European_Finnish_AF=Allele_Count_European_Finnish/Allele_Number_European_Finnish)
   csv1 <- mutate(csv1, European_Non_Finnish_AF=Allele_Count_European_non_Finnish/Allele_Number_European_non_Finnish)
   csv1 <- mutate(csv1, Other_AF=Allele_Count_Other/Allele_Number_Other)
   csv1 <- mutate(csv1, South_Asian_AF=Allele_Count_South_Asian/Allele_Number_South_Asian)
+  
   csv1 <- add_columns(csv1, panel, by="Gene")
-  csv1 <- csv1[c("Chromosome", "rsID", "Source", "Filters_exomes", "Filters_genomes", "Consequence", "Protein_Consequence", 
-                 "Transcript_Consequence", "Annotation", "Flags", "Gene", "Variant", "Global_AF", "African_AF", "Latino_AF", 
-                 "Ashkenazi_Jewish_AF", "East_Asian_AF", "European_Finnish_AF", "European_Non_Finnish_AF", "Other_AF", 
-                 "South_Asian_AF", "Transcript.ID", "Protein.ID", "Protein.ID.for.PP2")]
+  
+  csv1 <- csv1[c("Chromosome", "rsID", "Source", "Filters_exomes", "Filters_genomes", "Transcript", "HGVS_Consequence", "Protein_Consequence", 
+                 "Transcript_Consequence", "VEP_Annotation", "ClinVar_Clinical_Significance", "ClinVar_Variation_ID", "Flags", "Gene", "Variant", 
+                 "Global_AF", "African_African_American_AF", "Latino_Admixed_American_AF", "Ashkenazi_Jewish_AF", "East_Asian_AF", "European_Finnish_AF", 
+                 "European_Non_Finnish_AF", "Other_AF", "South_Asian_AF", "Transcript_ID", "Protein_ID", "Protein_ID_for_PP2")]
   filename <- paste0(reffile, ".af.csv")
   write.table(csv1, file=filename, sep=",", row.names = FALSE)
-  file.move(reffile, "./cache/c_gene_ref", overwrite=TRUE)
+  file.move(reffile, "./original_files/d_gene_ref", overwrite=TRUE)
 }
 Sys.sleep(2)
 
@@ -171,7 +214,7 @@ reflib <- lapply(reffiles, read.csv)
 reflib <- do.call(rbind.data.frame, reflib)
 registerDoParallel(numCores)
 foreach (reffile = reffiles) %dopar% {
-  file.move(reffile, "./cache/d_gene_ref_trim", overwrite=TRUE)
+  file.move(reffile, "./cache/c_gene_ref_trim", overwrite=TRUE)
 }
 chrs <- c("1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14", 
           "15", "16", "17", "18", "19", "20", "21", "22", "X", "Y")
@@ -179,16 +222,16 @@ registerDoParallel(numCores)
 foreach (chr = chrs) %dopar% {
   csv1 <- filter(reflib, Chromosome == chr)
   if(nrow(csv1)>1){
-    csv1 <- csv1[c("Variant", "rsID", "Gene", "Consequence", "Annotation", "Protein.ID", "Protein_Consequence", 
-                   "Transcript.ID", "Transcript_Consequence", "Filters_exomes", "Filters_genomes", "Global_AF", 
-                   "African_AF", "Latino_AF", "Ashkenazi_Jewish_AF", "East_Asian_AF", "South_Asian_AF", 
-                   "European_Finnish_AF", "European_Non_Finnish_AF", "Other_AF", "Source", "Protein.ID.for.PP2", 
-                   "Flags")]
+    csv1 <- csv1[c("Variant", "rsID", "Gene", "HGVS_Consequence", "VEP_Annotation", "Protein_ID", "Protein_Consequence", 
+                   "Transcript_ID", "Transcript_Consequence", "Filters_exomes", "Filters_genomes", "Global_AF", 
+                   "African_African_American_AF", "Latino_Admixed_American_AF", "Ashkenazi_Jewish_AF", "East_Asian_AF", "South_Asian_AF", 
+                   "European_Finnish_AF", "European_Non_Finnish_AF", "Other_AF", "Source", "Protein_ID_for_PP2", 
+                   "Flags", "ClinVar_Clinical_Significance","ClinVar_Variation_ID")]
     filename <- paste0("chr", chr, ".ref.csv")
     write.table(csv1, file=filename, sep=",", row.names = FALSE)
   }
 }
-rm("reflib", "chrs", "reffile", "reffiles")
+rm("reflib", "chrs", "reffile", "reffiles", "ash_jew", "nans")
 Sys.sleep(1)
 
 
@@ -227,7 +270,7 @@ if (is_empty(vcffiles)==FALSE){
     filename <- paste0(vcffile, ".allvariants.csv")
     write.table(cbind(allvariants@fix, allvariants@gt), 
                 file=filename, sep=",", row.name=FALSE)
-    file.move(vcffile, "./cache/e_unzipped_vcf", overwrite=TRUE)
+    file.move(vcffile, "./cache/d_unzipped_vcf", overwrite=TRUE)
   }
   print("All variants info is extracetd")
 }
@@ -252,7 +295,7 @@ if (is_empty(rawcsvs)==FALSE){
       filename <- paste0(rawcsv, ".translated.csv")
       write.table(csv1, file=filename, sep=",", row.names = FALSE)
     }
-    file.move(rawcsv, "./cache/f_raw_csv", overwrite=TRUE)
+    file.move(rawcsv, "./cache/e_raw_csv", overwrite=TRUE)
   }
   print("All variants info is translated")
 }
@@ -282,7 +325,7 @@ foreach (allvariant = allvariants) %dopar% {
     filename <- paste0(allvariant, ".filter.csv")
     write.table(csv1, file=filename, sep=",", row.names = FALSE)
   }
-  file.move(allvariant, "./cache/g_all_variants", overwrite=TRUE)
+  file.move(allvariant, "./cache/f_all_variants", overwrite=TRUE)
 }
 print("Filtering completed")
 rm("allvariants")
@@ -306,7 +349,7 @@ foreach (medcsv = medcsvs) %dopar% {
     filename <- paste0(medcsv, ".trim.csv")
     write.table(csv1, file=filename, sep=",", row.names = FALSE)
   }
-  file.move(medcsv, "./cache/h_filtered_variants", overwrite=TRUE)
+  file.move(medcsv, "./cache/g_filtered_variants", overwrite=TRUE)
 }
 print("Trimming completed")
 rm("medcsvs")
@@ -325,25 +368,17 @@ registerDoParallel(numCores)
 foreach (chr = chrs) %dopar% {
   csv2 <- filter(csv1, CHROM == chr)
     if(nrow(csv2)>1){
+      csv2 <- separate(csv2,"Sample",into = c("Sample","Suffix"),sep = "_",remove = FALSE,extra = "merge")
       csv2 <- csv2[c("Sample", "Variant", "ID", "QUAL", "FILTER", "Genotype", "Genotype_Quality", 
                      "Allele_Deapth", "Total_Depth", "Variant_Frequency", "NoiseLevel", "StrandBias", 
                      "Uncalled", "INFO")]
-      csv2$"Sample" <- gsub('_S1', '', csv2$"Sample")
-      csv2$"Sample" <- gsub('_S2', '', csv2$"Sample")
-      csv2$"Sample" <- gsub('_S3', '', csv2$"Sample")
-      csv2$"Sample" <- gsub('_S4', '', csv2$"Sample")
-      csv2$"Sample" <- gsub('_S5', '', csv2$"Sample")
-      csv2$"Sample" <- gsub('_S6', '', csv2$"Sample")
-      csv2$"Sample" <- gsub('_S7', '', csv2$"Sample")
-      csv2$"Sample" <- gsub('_S8', '', csv2$"Sample")
-      csv2$"Sample" <- gsub('_S9', '', csv2$"Sample")
       filename <- paste0(chr, ".seq.csv")
       write.table(csv2, file=filename, sep=",", row.names = FALSE)
     }
 }
 registerDoParallel(numCores)
 foreach (medwelcsv = medwelcsvs) %dopar% {
-  file.move(medwelcsv, "./cache/i_trimmed_variants", overwrite=TRUE)
+  file.move(medwelcsv, "./cache/h_trimmed_variants", overwrite=TRUE)
 }
 print("Variants info ready")
 rm("medwelcsvs", "csv1", "chrs")
@@ -364,12 +399,12 @@ foreach (chr = chrs) %dopar% {
     csv2 <- read.csv(filename2)
     csv2 <- csv2[!duplicated(csv2[,"Variant"]),]
     csv3 <- add_columns(csv1, csv2, by="Variant")
-    csv3 <- filter(csv3 ,Global_AF<0.01 & African_AF<0.01 & Latino_AF<0.01 & 
+    csv3 <- filter(csv3 ,Global_AF<0.01 & African_African_American_AF<0.01 & Latino_Admixed_American_AF<0.01 & 
                      Ashkenazi_Jewish_AF<0.01 & East_Asian_AF<0.01 & South_Asian_AF<0.01 & 
                      European_Finnish_AF<0.01 & European_Non_Finnish_AF<0.01 & Other_AF<0.01)
-    csv3 <- filter(csv3, Annotation != "5_prime_UTR_variant" & Annotation != "synonymous_variant" & 
-                     Annotation != "intron_variant" & Annotation !="3_prime_UTR_variant" & 
-                     Annotation != "stop_retained_variant")
+    csv3 <- filter(csv3, VEP_Annotation != "5_prime_UTR_variant" & VEP_Annotation != "synonymous_variant" & 
+                     VEP_Annotation != "intron_variant" & VEP_Annotation !="3_prime_UTR_variant" & 
+                     VEP_Annotation != "stop_retained_variant")
         #Retained:
         #missense_variant
         #stop_gained
@@ -385,8 +420,8 @@ foreach (chr = chrs) %dopar% {
     if(nrow(csv3)>1){
       write.table(csv3, file=filename3, sep=",", row.names = FALSE)
     }
-    file.move(filename1, "./cache/j_chr_variants", overwrite=TRUE)
-    file.move(filename2, "./cache/k_chr_refs", overwrite=TRUE)
+    file.move(filename1, "./cache/i_chr_variants", overwrite=TRUE)
+    file.move(filename2, "./cache/j_chr_refs", overwrite=TRUE)
   }
 }
 rm("chrs")
@@ -399,10 +434,10 @@ aligns <- list.files(pattern=".align.csv")
 for (align in aligns) {
   rsIDs <- read.csv(align)[, "rsID"]
   rsIDs <- rsIDs[!is.na(rsIDs)]
-  cDrv <- chrome(version = "84.0.4147.30", verbose = FALSE) # binman::list_versions("chromedriver")
+  cDrv <- chrome(version = "99.0.4844.51", verbose = FALSE) # binman::list_versions("chromedriver")
   eCaps <- list(
     chromeOptions = list(
-      args = c('--headless', '--disable-gpu', '--window-size=1280,800'), # '--headless', 
+      args = c('--disable-gpu', '--window-size=1280,800'), # '--headless', 
       prefs = list(
         "profile.default_content_settings.popups" = 0L,
         "download.prompt_for_download" = FALSE,
@@ -410,12 +445,12 @@ for (align in aligns) {
       )
     )
   )
-  remDr <- remoteDriver(browserName = "chrome", port = 4567L, extraCapabilities = eCaps)
-  remDr$open()
-  Sys.sleep(1)
-  remDr$setTimeout(type = "implicit", milliseconds = 10000)
-  remDr$setTimeout(type = "page load", milliseconds = 10000)
   for (rsID in rsIDs) {
+    remDr <- remoteDriver(browserName = "chrome", port = 4567L, extraCapabilities = eCaps)
+    remDr$open()
+    Sys.sleep(1)
+    remDr$setTimeout(type = "implicit", milliseconds = 10000)
+    remDr$setTimeout(type = "page load", milliseconds = 10000)
     new <- rsID
     snpurl <- paste0("https://www.ncbi.nlm.nih.gov/snp/", rsID)
     # snpurl<- "https://www.ncbi.nlm.nih.gov/snp/rs754435604"
@@ -449,18 +484,19 @@ for (align in aligns) {
     }
     filename <- paste0(rsID, ">", new, ".snp.csv")
     write.table(table, file=filename, sep=",", row.name=F)
+    remDr$close()
+    Sys.sleep(10)
   }
-  remDr$close()
   cDrv$stop()
 }
 csv1 <- lapply(aligns, read.csv)
 csv1 <- do.call(rbind.data.frame, csv1)
 write.table(csv1, file="all.filtered.csv", sep=",", row.names = FALSE)
-file.move(aligns, "./cache/l_variants_aligns", overwrite=TRUE)
+file.move(aligns, "./cache/k_variants_aligns", overwrite=TRUE)
 rm("cDrv", "eCaps", "table", "table0", "table1", "tables", "elem", "elemtxt", "elemxml", "filename", 
    "snpurl", "remDr", "rsID", "rsIDs", "csv1", "txt", "new", "align", "aligns", "error")
 print("Most updated SNP info retrived")
-Sys.sleep(15)
+Sys.sleep(10)
 
 
 # Trim NCBI SNP info
@@ -477,7 +513,7 @@ foreach (ncbisnp = ncbisnps) %dopar% {
                    into=c("RefSeq","Change"), sep=":")
   filename <- paste0(ncbisnp, ".ncbisnp.csv")
   write.table(csv1, file=filename, sep=",", row.name=F)
-  file.move(ncbisnp, "./original_files/d_ncbi_snp", overwrite=TRUE)
+  file.move(ncbisnp, "./original_files/e_ncbi_snp", overwrite=TRUE)
 }
 Sys.sleep(2)
 ncbisnps <- list.files(pattern=".ncbisnp.csv")
@@ -485,7 +521,7 @@ csv1 <- lapply(ncbisnps, read.csv)
 csv1 <- do.call(rbind.data.frame, csv1)
 registerDoParallel(numCores)
 foreach (ncbisnp = ncbisnps) %dopar% {
-  file.move(ncbisnp, "./cache/m_ncbi_snp", overwrite=TRUE)
+  file.move(ncbisnp, "./cache/l_ncbi_snp", overwrite=TRUE)
 }
 csv1 <- csv1[c("rsID", "RefSeq", "Change", "SO_Term", "NCBI_rsID")]
 names(csv1) <- gsub("SO_Term", "NCBI_consequence", names(csv1))
@@ -505,19 +541,19 @@ csv1$dbSNP <- ifelse(csv1$rsID == csv1$NCBI_rsID, paste0(csv1$rsID), paste0(csv1
 csv1$dbSNP_confirmed_with_NCBI <- ifelse(csv1$rsID == csv1$NCBI_rsID, "Yes", "No")
 csv1 <- csv1[c("Sample", "Variant", "QUAL", "FILTER", "Genotype", "Genotype_Quality", "Allele_Deapth", 
                "Total_Depth", "Variant_Frequency", "NoiseLevel", "StrandBias", "Uncalled", "INFO", "dbSNP", 
-               "dbSNP_confirmed_with_NCBI", "Gene", "Consequence", "Annotation", "Protein.ID", "Protein_Consequence", 
-               "Transcript.ID", "Transcript_Consequence", "Filters_exomes", "Filters_genomes", "Global_AF", "African_AF", 
-               "Latino_AF", "Ashkenazi_Jewish_AF", "East_Asian_AF", "South_Asian_AF", "European_Finnish_AF", 
-               "European_Non_Finnish_AF", "Other_AF", "Source", "Protein.ID.for.PP2", "Flags")]
+               "dbSNP_confirmed_with_NCBI", "Gene", "HGVS_Consequence", "VEP_Annotation", "Protein_ID", "Protein_Consequence", 
+               "Transcript_ID", "Transcript_Consequence", "Filters_exomes", "Filters_genomes", "Global_AF", "African_African_American_AF", 
+               "Latino_Admixed_American_AF", "Ashkenazi_Jewish_AF", "East_Asian_AF", "South_Asian_AF", "European_Finnish_AF", 
+               "European_Non_Finnish_AF", "Other_AF", "Source", "Protein_ID_for_PP2", "Flags", "ClinVar_Clinical_Significance", "ClinVar_Variation_ID")]
 csv2 <- csv1 %>% 
-  filter(str_detect(Consequence, "ins") | str_detect(Consequence, "del") | str_detect(Consequence, "fs"))
-csv1 <- csv1[ grep("ins", csv1$Consequence, invert = TRUE), ]
-csv1 <- csv1[ grep("del", csv1$Consequence, invert = TRUE), ]
-csv1 <- csv1[ grep("fs", csv1$Consequence, invert = TRUE), ]
+  filter(str_detect(HGVS_Consequence, "ins") | str_detect(HGVS_Consequence, "del") | str_detect(HGVS_Consequence, "fs"))
+csv1 <- csv1[ grep("ins", csv1$HGVS_Consequence, invert = TRUE), ]
+csv1 <- csv1[ grep("del", csv1$HGVS_Consequence, invert = TRUE), ]
+csv1 <- csv1[ grep("fs", csv1$HGVS_Consequence, invert = TRUE), ]
 write.table(csv1, file="nidfs.filtered.csv", sep=",", row.names = FALSE)
 write.table(csv2, file="idfs.filtered.csv", sep=",", row.names = FALSE)
-file.move("all.filtered.csv", "./cache/n_merge", overwrite=TRUE)
-file.move("rsIDs.csv", "./cache/n_merge", overwrite=TRUE)
+file.move("all.filtered.csv", "./cache/m_merge", overwrite=TRUE)
+file.move("rsIDs.csv", "./cache/m_merge", overwrite=TRUE)
 Sys.sleep(2)
 csv1 <- read.csv("all.refsnp.csv")
 csv2 <- csv1 %>% 
@@ -527,7 +563,7 @@ csv1 <- csv1[ grep("del", csv1$Change, invert = TRUE), ]
 csv1 <- csv1[ grep("fs", csv1$Change, invert = TRUE), ]
 write.table(csv1, file="nidfs.refsnp.csv", sep=",", row.names = FALSE)
 write.table(csv2, file="idfs.refsnp.csv", sep=",", row.names = FALSE)
-file.move("all.refsnp.csv", "./cache/n_merge", overwrite=TRUE)
+file.move("all.refsnp.csv", "./cache/m_merge", overwrite=TRUE)
 rm("csv1", "csv2")
 Sys.sleep(2)
 
@@ -535,9 +571,9 @@ Sys.sleep(2)
 # Organize substitution variants
 csv1 <- read.csv("nidfs.filtered.csv")
 csv2 <- csv1 %>% 
-  filter(str_detect(Consequence, "^p."))
+  filter(str_detect(HGVS_Consequence, "^p."))
 csv3 <- csv1 %>%
-  filter(str_detect(Consequence, "^c."))
+  filter(str_detect(HGVS_Consequence, "^c."))
 csv4 <- read.csv("nidfs.refsnp.csv")
 csv4$dbSNP <- ifelse(csv4$rsID == csv4$NCBI_rsID, paste0(csv4$rsID), paste0(csv4$NCBI_rsID))
 csv4 <- csv4[c("dbSNP", "RefSeq", "Change", "NCBI_consequence")]
@@ -551,7 +587,7 @@ aachange <- as.matrix(csv2$Protein_Consequence)
 aachange <- gsub('[0-9]+', '', aachange)
 aachange <- as.data.frame(aachange)
 csv2 <- cbind(csv2, aachange)
-names(csv2) <- gsub("Protein.ID", "RefSeq", names(csv2))
+names(csv2) <- gsub("Protein_ID", "RefSeq", names(csv2))
 aachange <- as.matrix(csv5$Change)
 aachange <- gsub('[0-9]+', '', aachange)
 aachange <- as.data.frame(aachange)
@@ -560,7 +596,7 @@ csv5 <- unique(csv5)
 csvp <- add_columns(csv2, csv5, by=c("dbSNP", "RefSeq", "V1"))
 names(csvp) <- gsub("Change", "NCBI_Consequence", names(csvp))
 names(csvp) <- gsub("NCBI_consequence", "NCBI_Annotation", names(csvp))
-names(csvp) <- gsub("RefSeq", "Protein.ID", names(csvp))
+names(csvp) <- gsub("RefSeq", "Protein_ID", names(csvp))
 csvp <- subset(csvp, select = -c(V1))
 Sys.sleep(1)
 # Transcript
@@ -568,7 +604,7 @@ ntchange <- as.matrix(csv3$Transcript_Consequence)
 ntchange <- gsub('[0-9]+', '', ntchange)
 ntchange <- as.data.frame(ntchange)
 csv3 <- cbind(csv3, ntchange)
-names(csv3) <- gsub("Transcript.ID", "RefSeq", names(csv3))
+names(csv3) <- gsub("Transcript_ID", "RefSeq", names(csv3))
 ntchange <- as.matrix(csv6$Change)
 ntchange <- gsub('[0-9]+', '', ntchange)
 ntchange <- as.data.frame(ntchange)
@@ -577,14 +613,14 @@ csv6 <- unique(csv6)
 csvt <- add_columns(csv3, csv6, by=c("dbSNP", "RefSeq", "V1"))
 names(csvt) <- gsub("Change", "NCBI_Consequence", names(csvt))
 names(csvt) <- gsub("NCBI_consequence", "NCBI_Annotation", names(csvt))
-names(csvt) <- gsub("RefSeq", "Transcript.ID", names(csvt))
+names(csvt) <- gsub("RefSeq", "Transcript_ID", names(csvt))
 csvt <- subset(csvt, select = -c(V1))
 Sys.sleep(1)
 # export
 write.table(csvp, file="nidfs.protein.csv", sep=",", row.names = FALSE)
 write.table(csvt, file="nidfs.transcript.csv", sep=",", row.names = FALSE)
-file.move("nidfs.filtered.csv", "./cache/o_pro_trans", overwrite=TRUE)
-file.move("nidfs.refsnp.csv", "./cache/o_pro_trans", overwrite=TRUE)
+file.move("nidfs.filtered.csv", "./cache/n_pro_trans", overwrite=TRUE)
+file.move("nidfs.refsnp.csv", "./cache/n_pro_trans", overwrite=TRUE)
 txt <- readLines("nidfs.protein.csv")
 txt <- gsub(',NA', ',"Not_Found"', txt)
 writeLines(txt, "nidfs.protein.csv")
@@ -598,9 +634,9 @@ Sys.sleep(1)
 # Organize insertion/deletion variants
 csv1 <- read.csv("idfs.filtered.csv")
 csv2 <- csv1 %>% 
-  filter(str_detect(Consequence, "^p."))
+  filter(str_detect(HGVS_Consequence, "^p."))
 csv3 <- csv1 %>%
-  filter(str_detect(Consequence, "^c."))
+  filter(str_detect(HGVS_Consequence, "^c."))
 csv4 <- read.csv("idfs.refsnp.csv")
 csv4$dbSNP <- ifelse(csv4$rsID == csv4$NCBI_rsID, paste0(csv4$rsID), paste0(csv4$NCBI_rsID))
 csv4 <- csv4[c("dbSNP", "RefSeq", "Change", "NCBI_consequence")]
@@ -610,26 +646,26 @@ csv6 <- csv4 %>%
   filter(str_detect(RefSeq, "^NM_"))
 Sys.sleep(1)
 # Protein
-names(csv2) <- gsub("Protein.ID", "RefSeq", names(csv2))
+names(csv2) <- gsub("Protein_ID", "RefSeq", names(csv2))
 csv5 <- unique(csv5)
 csvp <- add_columns(csv2, csv5, by=c("dbSNP", "RefSeq"))
 names(csvp) <- gsub("Change", "NCBI_Consequence", names(csvp))
 names(csvp) <- gsub("NCBI_consequence", "NCBI_Annotation", names(csvp))
-names(csvp) <- gsub("RefSeq", "Protein.ID", names(csvp))
+names(csvp) <- gsub("RefSeq", "Protein_ID", names(csvp))
 Sys.sleep(1)
 # Transcript
-names(csv3) <- gsub("Transcript.ID", "RefSeq", names(csv3))
+names(csv3) <- gsub("Transcript_ID", "RefSeq", names(csv3))
 csv6 <- unique(csv6)
 csvt <- add_columns(csv3, csv6, by=c("dbSNP", "RefSeq"))
 names(csvt) <- gsub("Change", "NCBI_Consequence", names(csvt))
 names(csvt) <- gsub("NCBI_consequence", "NCBI_Annotation", names(csvt))
-names(csvt) <- gsub("RefSeq", "Transcript.ID", names(csvt))
+names(csvt) <- gsub("RefSeq", "Transcript_ID", names(csvt))
 Sys.sleep(1)
 # export
 write.table(csvp, file="idfs.protein.csv", sep=",", row.names = FALSE)
 write.table(csvt, file="idfs.transcript.csv", sep=",", row.names = FALSE)
-file.move("idfs.filtered.csv", "./cache/o_pro_trans", overwrite=TRUE)
-file.move("idfs.refsnp.csv", "./cache/o_pro_trans", overwrite=TRUE)
+file.move("idfs.filtered.csv", "./cache/n_pro_trans", overwrite=TRUE)
+file.move("idfs.refsnp.csv", "./cache/n_pro_trans", overwrite=TRUE)
 txt <- readLines("idfs.protein.csv")
 txt <- gsub(',NA', ',"Not_Found"', txt)
 writeLines(txt, "idfs.protein.csv")
@@ -650,23 +686,22 @@ travar <- list.files(pattern=".transcript.csv")
 csv2 <- lapply(travar, read.csv)
 csv2 <- do.call(rbind.data.frame, csv2)
 csv3 <- csv1 %>% 
-  filter(str_detect(Consequence, "ins") | str_detect(Consequence, "del") | 
-           str_detect(Consequence, "fs") | str_detect(Consequence, "Ter") | 
-           str_detect(Consequence, "Ter"))
+  filter(str_detect(HGVS_Consequence, "ins") | str_detect(HGVS_Consequence, "del") | 
+           str_detect(HGVS_Consequence, "fs") | str_detect(HGVS_Consequence, "Ter"))
 csv2 <- rbind(csv2, csv3)
-csv1 <- csv1[ grep("ins", csv1$Consequence, invert = TRUE), ]
-csv1 <- csv1[ grep("del", csv1$Consequence, invert = TRUE), ]
-csv1 <- csv1[ grep("fs", csv1$Consequence, invert = TRUE), ]
-csv1 <- csv1[ grep("Ter", csv1$Consequence, invert = TRUE), ]
+csv1 <- csv1[ grep("ins", csv1$HGVS_Consequence, invert = TRUE), ]
+csv1 <- csv1[ grep("del", csv1$HGVS_Consequence, invert = TRUE), ]
+csv1 <- csv1[ grep("fs", csv1$HGVS_Consequence, invert = TRUE), ]
+csv1 <- csv1[ grep("Ter", csv1$HGVS_Consequence, invert = TRUE), ]
 write.table(csv1, file="protein.pre.csv", sep=",", row.names = FALSE)
 write.table(csv2, file="transcript.pre.csv", sep=",", row.names = FALSE)
-file.move(provar, "./cache/o_pro_trans", overwrite=TRUE)
-file.move(travar, "./cache/o_pro_trans", overwrite=TRUE)
+file.move(provar, "./cache/n_pro_trans", overwrite=TRUE)
+file.move(travar, "./cache/n_pro_trans", overwrite=TRUE)
 rm("csv1", "csv2", "csv3", "provar", "travar")
 Sys.sleep(1)
 # Protein prediction format
 csv1 <- read.csv("protein.pre.csv")
-csv2 <- csv1[c("Protein.ID", "Protein.ID.for.PP2", "NCBI_Consequence")]
+csv2 <- csv1[c("Protein_ID", "Protein_ID_for_PP2", "NCBI_Consequence")]
 csv2$NCBI_Consequence <- gsub('p.', '', csv2$NCBI_Consequence)
 csv2$aapos <- stri_extract_all_regex(csv2$NCBI_Consequence, "[0-9]+")
 csv2$NCBI_Consequence <- str_replace_all(csv2$NCBI_Consequence, c("Ala"="A", "Arg"="R", "Asn"="N", "Asp"="D", 
@@ -677,8 +712,8 @@ csv2$NCBI_Consequence <- str_replace_all(csv2$NCBI_Consequence, c("Ala"="A", "Ar
                                                                   "Tyr"="Y", "Val"="V"))
 csv2$NCBI_Consequence <- gsub('[0-9]+', '-', csv2$NCBI_Consequence)
 csv2 <- separate(csv2, "NCBI_Consequence", into=c("aaref", "aaalt"), sep="-")
-csv2$Provean_format <- paste(csv2$Protein.ID, csv2$aapos, csv2$aaref, csv2$aaalt)
-csv2$PolyPhen_format <- paste(csv2$Protein.ID.for.PP2, csv2$aapos, csv2$aaref, csv2$aaalt)
+csv2$Provean_format <- paste(csv2$Protein_ID, csv2$aapos, csv2$aaref, csv2$aaalt)
+csv2$PolyPhen_format <- paste(csv2$Protein_ID_for_PP2, csv2$aapos, csv2$aaref, csv2$aaalt)
 csv3 <- csv2[c("Provean_format", "PolyPhen_format")]
 csv1 <- cbind(csv1, csv3)
 csv1$Provean_format <- ifelse(str_detect(csv1$Provean_format, "Not_Found"), paste0("Not_Found"), paste0(csv1$Provean_format))
@@ -695,8 +730,8 @@ csv2$PolyPhen_format <- paste0("chr", csv2$chr, ":", csv2$pos, " ", csv2$ref, "/
 csv3 <- csv2[c("Provean_format", "PolyPhen_format")]
 csv1 <- cbind(csv1, csv3)
 write.table(csv1, file="transcript.format.csv", sep=",", row.names = FALSE)
-file.move("protein.pre.csv", "./cache/o_pro_trans", overwrite=TRUE)
-file.move("transcript.pre.csv", "./cache/o_pro_trans", overwrite=TRUE)
+file.move("protein.pre.csv", "./cache/n_pro_trans", overwrite=TRUE)
+file.move("transcript.pre.csv", "./cache/n_pro_trans", overwrite=TRUE)
 rm("csv1", "csv2", "csv3")
 Sys.sleep(1)
 
@@ -727,7 +762,7 @@ rm("pro", "pro_provean", "pro_polyphen", "tra", "tra_provean", "tra_polyphen", "
 
 # Prediction
 print("Performing variant prediction...")
-cDrv <- chrome(version = "84.0.4147.30", verbose = FALSE) # binman::list_versions("chromedriver")
+cDrv <- chrome(version = "99.0.4844.51", verbose = FALSE) # binman::list_versions("chromedriver")
 eCaps <- list(
   chromeOptions = list(
     args = c('--headless', '--disable-gpu', '--window-size=1280,800'), # '--headless', 
@@ -747,25 +782,25 @@ remDr$setTimeout(type = "page load", milliseconds = 60000)
 proveanpro <- read_file("protein.provean.txt")
 proveanpro <- gsub("\n", "\uE007", proveanpro)
 remDr$navigate ("http://provean.jcvi.org/protein_batch_submit.php?species=human")
-Sys.sleep(2)
+Sys.sleep(10)
 textarea <-remDr$findElement(using="xpath", "//textarea[@id='variants']")
 textarea$sendKeysToElement(list(proveanpro))
 Sys.sleep(2)
 submit <-remDr$findElement(using="xpath", "//input[@type='submit']")
 submit$clickElement()
-Sys.sleep(10)
+Sys.sleep(60)
 download <-remDr$findElement(using="xpath", "(//a[contains(text(),'Download')])[2]")
 download$clickElement()
 Sys.sleep(2)
 result <- list.files(pattern=".result.tsv")
 file.rename(result, "protein.result.provean.tsv")
-file.move("protein.provean.txt", "./cache/p_pre_format", overwrite=TRUE)
+file.move("protein.provean.txt", "./cache/o_pre_format", overwrite=TRUE)
 Sys.sleep(2)
 # Provean transcription prediction
 proveantra <- read_file("transcript.provean.txt")
 proveantra <- gsub("\n", "\uE007", proveantra)
 remDr$navigate ("http://provean.jcvi.org/genome_submit_2.php?species=human")
-Sys.sleep(2)
+Sys.sleep(10)
 textarea <-remDr$findElement(using="xpath", "//textarea[@id='CHR']")
 textarea$sendKeysToElement(list(proveantra))
 Sys.sleep(2)
@@ -777,19 +812,19 @@ download$clickElement()
 Sys.sleep(2)
 result <- list.files(pattern=".result.one.tsv")
 file.rename(result, "transcript.result.provean.tsv")
-file.move("transcript.provean.txt", "./cache/p_pre_format", overwrite=TRUE)
+file.move("transcript.provean.txt", "./cache/o_pre_format", overwrite=TRUE)
 Sys.sleep(2)
 # PolyPhen prediction
 polyphen <- read_file("all.polyphen.txt")
 polyphen <- gsub("\n", "\uE007", polyphen)
 remDr$navigate ("http://genetics.bwh.harvard.edu/pph2/bgi.shtml")
-Sys.sleep(2)
+Sys.sleep(10)
 textarea <-remDr$findElement(using="xpath", "//textarea[@name='_ggi_batch']")
 textarea$sendKeysToElement(list(polyphen))
 Sys.sleep(2)
 submit <-remDr$findElement(using="xpath", "//input[@name='_ggi_target_pipeline']")
 submit$clickElement()
-Sys.sleep(30)
+Sys.sleep(60)
 refresh <-remDr$findElement(using="xpath", "//input[@name='_ggi_target_manage']")
 refresh$clickElement()
 Sys.sleep(2)
@@ -799,7 +834,7 @@ Sys.sleep(2)
 pp2short <-remDr$findElement(using='css selector',"body")$getElementText()
 write.table(pp2short, file="pp2short.txt", sep="\t", row.name=F)
 Sys.sleep(2)
-file.move("all.polyphen.txt", "./cache/p_pre_format", overwrite=TRUE)
+file.move("all.polyphen.txt", "./cache/o_pre_format", overwrite=TRUE)
 remDr$close()
 cDrv$stop()
 # Export
@@ -816,13 +851,15 @@ pp2$PP2 <- gsub('[ ]+', ',', pp2$PP2)
 pp2 <- separate(pp2, "PP2", into=c("o_acc","o_pos","o_aa1","o_aa2","rsid","acc","pos","aa1","aa2",
                                    "prediction","pph2_prob","pph2_FPR","pph2_TPR"), sep=",")
 write.table(pp2, file="all.result.polyphen.csv", sep=",", row.names = FALSE)
-file.move("pp2short.txt", "./original_files/e_predictions", overwrite=TRUE)
-file.move("pp2.csv", "./cache/q_predictions", overwrite=TRUE)
+file.move("pp2short.txt", "./original_files/f_predictions", overwrite=TRUE)
+file.move("pp2.csv", "./cache/p_predictions", overwrite=TRUE)
 print("All prediction completed")
 rm("cDrv", "eCaps", "download", "refresh", "submit", "proveanpro", "proveantra", "polyphen", "remDr", "result", 
    "textarea", "row", "row_4", "pp2short", "pp2")
 Sys.sleep(2)
 
+
+# manually move the files from /Download folder and rename as "protein.result.provean.tsv" and "transcript.result.provean.tsv"
 
 # Merge prediction results (unique, add_columns)
 print("Final trimming...")
@@ -849,7 +886,7 @@ csv1 <- add_columns(csv1, csv4, by=c("PolyPhen_format"))
 write.table(csv1, file="all.csv", sep=",", row.names = FALSE)
 file.move(c("protein.format.csv", "protein.result.provean.tsv", "transcript.format.csv", 
             "transcript.result.provean.tsv", "all.result.polyphen.csv"), 
-          "./cache/r_prediction_merge", overwrite=TRUE)
+          "./cache/q_prediction_merge", overwrite=TRUE)
 print("Combining all data...")
 Sys.sleep(1)
 csv1 <- read.csv("all.csv")
@@ -865,9 +902,11 @@ csv1$"Flags" <- gsub('Not_Found', NA, csv1$"Flags")
 csv1$"NCBI_Annotation" <- gsub('Not_Found', NA, csv1$"NCBI_Annotation")
 csv1$"Provean_format" <- gsub('Not_Found', NA, csv1$"Provean_format")
 csv1$"PolyPhen_format" <- gsub('Not_Found', NA, csv1$"PolyPhen_format")
+csv1$"ClinVar_Clinical_Significance" <- gsub('Not_Found', NA, csv1$"ClinVar_Clinical_Significance")
+csv1$"ClinVar_Variation_ID" <- gsub('Not_Found', NA, csv1$"ClinVar_Variation_ID")
 csv1$PolyPhen_prediction <- str_replace_all(csv1$PolyPhen_prediction, c("benign"="Benign", 
                                                                         "probably_damaging"="Probably Damaging", "possibly_damaging"="Possibly Damaging"))
-csv1$Annotation <- str_replace_all(csv1$Annotation, c("missense_variant"="Missense Variant", 
+csv1$VEP_Annotation <- str_replace_all(csv1$VEP_Annotation, c("missense_variant"="Missense Variant", 
                                                       "stop_gained"="Stop Gained", "inframe_deletion"="Inframe Deletion", "splice_region_variant"="Splice Region Variant", 
                                                       "splice_donor_variant"="Splice Donor Variant", "frameshift_variant"="Frameshift Variant", "splice_acceptor_variant"="Splice Acceptor Variant", 
                                                       "stop_lost"="Stop Lost", "start_lost"="Start Lost", "inframe_insertion"="Inframe Insertion", "protein_altering_variant"="Protein Altering Variant"))
@@ -875,23 +914,29 @@ pool <- unique(pool)
 csv1 <- add_columns(csv1, pool, by="Sample")
 csv1 <- csv1[c("Sample", "Diagnosis", "Gene", "Variant", "dbSNP", "dbSNP_confirmed_with_NCBI", "QUAL", "FILTER", 
                "Genotype", "Genotype_Quality", "Allele_Deapth", "Total_Depth", "Variant_Frequency", "NoiseLevel", 
-               "StrandBias", "Uncalled", "INFO", "Consequence", "Annotation", "NCBI_Consequence", "NCBI_Annotation", 
-               "Protein.ID", "Protein_Consequence", "Transcript.ID", "Transcript_Consequence", "Filters_exomes", 
-               "Filters_genomes", "Global_AF", "African_AF", "Latino_AF", "Ashkenazi_Jewish_AF", "East_Asian_AF", 
-               "South_Asian_AF", "European_Finnish_AF", "European_Non_Finnish_AF", "Other_AF", "Source", "Flags", 
-               "Provean_format", "PolyPhen_format", "Provean_prediction", "SIFT_prediction", "PolyPhen_prediction")]
-print("Exporting aggregate report...")
+               "StrandBias", "Uncalled", "INFO", "HGVS_Consequence", "VEP_Annotation", "NCBI_Consequence", "NCBI_Annotation", 
+               "Protein_ID", "Protein_Consequence", "Transcript_ID", "Transcript_Consequence", "Filters_exomes", 
+               "Filters_genomes", "Global_AF", "African_African_American_AF", "Latino_Admixed_American_AF", "Ashkenazi_Jewish_AF", "East_Asian_AF", 
+               "South_Asian_AF", "European_Finnish_AF", "European_Non_Finnish_AF", "Other_AF", "Source", "Flags", "ClinVar_Clinical_Significance", 
+               "ClinVar_Variation_ID", "Provean_format", "PolyPhen_format", "Provean_prediction", "SIFT_prediction", "PolyPhen_prediction")]
 Sys.sleep(1)
-csv2 <- csv1[c("Sample", "Diagnosis")]
-csv2 <- unique(csv2)
-csv2 <- csv2[c("Diagnosis")]
+
+
+
+# Count
+print("Exporting aggregate report...")
 csv3 <- filter(csv1, Total_Depth >=50) # good
 names(csv3) <- gsub("Total_Depth", "Total Depth", names(csv3))
 csv4 <- filter(csv1, Total_Depth <50) # rerun
 names(csv4) <- gsub("Total_Depth", "Total Depth", names(csv4))
+
+csv2 <- csv1[c("Sample", "Diagnosis")]
+csv2 <- unique(csv2)
+csv2 <- csv2[c("Diagnosis")]
 variantcount <- table(csv2)
 variantcount <- as.data.frame(variantcount)
 colnames(variantcount) <- c("Diagnosis", "Patients_with_variants")
+
 samples <- as.data.frame(samplesinthisbatch)
 samples <- separate(samples, "samplesinthisbatch", into=c("Sample", "other"), sep="_")
 samples <- add_columns(samples, pool, by="Sample")
@@ -900,33 +945,38 @@ samples <- samples[c("Diagnosis")]
 samplecount <- table(samples)
 samplecount <- as.data.frame(samplecount)
 colnames(samplecount) <- c("Diagnosis", "Patients_in_this_analysis")
+
 csv1 <- add_columns(samplecount, variantcount, by="Diagnosis")
 csv1 <- filter(csv1, Patients_in_this_analysis != 0)
 csv1 <- mutate(csv1, Percentage=Patients_with_variants/Patients_in_this_analysis*100)
-names(csv1) <- gsub("Patients_with_variants", "Patients with variants", names(csv1))
-names(csv1) <- gsub("Patients_in_this_analysis", "Patients in this analysis", names(csv1))
-csv2 <- filter(csv3 ,Global_AF<0.005 & African_AF<0.005 & Latino_AF<0.005 & 
+colnames(csv1) <- c("Diagnosis", "Patients in this analysis", "Patients with variants", "Percentage (MAF<1%, including re-run)")
+
+
+# Export
+csv2 <- filter(csv3 ,Global_AF<0.005 & African_African_American_AF<0.005 & Latino_Admixed_American_AF<0.005 & 
                  Ashkenazi_Jewish_AF<0.005 & East_Asian_AF<0.005 & South_Asian_AF<0.005 & 
                  European_Finnish_AF<0.005 & European_Non_Finnish_AF<0.005 & Other_AF<0.005)
-csv3 <- filter(csv3, Global_AF>=0.005 & African_AF>=0.005 & Latino_AF>=0.005 & 
-                 Ashkenazi_Jewish_AF>=0.005 & East_Asian_AF>=0.005 & South_Asian_AF>=0.005 & 
-                 European_Finnish_AF>=0.005 & European_Non_Finnish_AF>=0.005 & Other_AF>=0.005)
+csv3 <- filter(csv3, Global_AF>=0.005 | African_African_American_AF>=0.005 | Latino_Admixed_American_AF>=0.005 | 
+                 Ashkenazi_Jewish_AF>=0.005 | East_Asian_AF>=0.005 | South_Asian_AF>=0.005 | 
+                 European_Finnish_AF>=0.005 | European_Non_Finnish_AF>=0.005 | Other_AF>=0.005)
+
 colnames <- c("Sample", "Diagnosis", "Gene", "Variant", "dbSNP", "dbSNP confirmed with NCBI", "Quality", "Filter", 
               "Genotype", "Genotype Quality", "Allele Deapth", "Total_Depth", "Variant Frequency", "NoiseLevel", 
-              "StrandBias", "Uncalled", "Other Info", "GnomAD Consequence", "GnomAD Annotation", "NCBI Consequence", "NCBI Annotation", 
+              "StrandBias", "Uncalled", "Other Info", "HGVS Consequence", "VEP Annotation", "NCBI Consequence", "NCBI Annotation", 
               "Protein ID", "GnomAD Protein Consequence", "Transcript ID", "GnomAD Transcript Consequence", "Filters exomes", 
-              "Filters genomes", "Global AF", "African AF", "Latino AF", "Ashkenazi Jewish AF", "East Asian AF", 
-              "South Asian AF", "European Finnish AF", "European Non Finnish AF", "Other AF", "AF data source", "Flags", 
-              "Provean format", "PolyPhen format", "Provean prediction", "SIFT prediction", "PolyPhen prediction")
+              "Filters genomes", "Global AF", "African/African American AF", "Latino/Admixed American AF", "Ashkenazi Jewish AF", "East Asian AF", 
+              "South Asian AF", "European (Finnish) AF", "European (non-Finnish) AF", "Other AF", "AF data source", "Flags", "ClinVar Clinical Significance", 
+              "ClinVar Variation ID", "Provean format", "PolyPhen format", "Provean prediction", "SIFT prediction", "PolyPhen prediction")
 colnames(csv2) <- colnames
 colnames(csv3) <- colnames
+colnames(csv4) <- colnames
 print("Writing excel file...")
 Sys.sleep(1)
 now <- Sys.time()
-filename <- paste0(format(now, "%Y-%m-%d_%H-%M-%S_"), "BRStudio_export.xlsx")
-sheets <- list("Summary" = csv1, "AF<0.5%"= csv2, "0.5%<AF<1%" = csv3, "Re-run" = csv4)
+filename <- paste0(format(now, "%Y-%m-%d_"), "BRStudio_export.xlsx")
+sheets <- list("Summary" = csv1, "AF<0.5%"= csv2, "0.5%<AF<1%" = csv3, "Re-run(lowDP)" = csv4)
 write_xlsx(sheets, filename)
-file.move("all.csv", "./cache/s_all_merge", overwrite=TRUE)
+file.move("all.csv", "./cache/r_all_merge", overwrite=TRUE)
 rm("csv1", "csv2", "csv3", "csv4", "samples", "samplecount", "variantcount", "colnames", 
    "sheets", "now", "panel", "pool", "numCores", "filename", "samplesinthisbatch")
 print("All done! Good luck analysing!")
