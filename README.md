@@ -1,9 +1,9 @@
 # BRStudio
 **An automated NGS data analyzing tool from [Braunstein Lab](https://www.braunstein.team/).**  
-*Current version: v1.1.3*
+*Current version: v2.0.0*
 
 ## Setting up the environment
-- This script has been tested under [Pop!_OS 20.04](https://pop.system76.com/). To set up the environment with terminal:  
+- This script has been tested under [Ubuntu 20.04 LTS](https://ubuntu.com/download/desktop) and linux systems based on Ubuntu 20.04 LTS. To set up the environment with terminal:  
 ```
   sudo apt update && sudo apt upgrade -y
   sudo apt install dirmngr gnupg apt-transport-https ca-certificates software-properties-common
