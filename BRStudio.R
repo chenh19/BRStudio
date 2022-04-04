@@ -1,4 +1,4 @@
-# BRStudio v2.0.0
+# BRStudio v2.1.2
 # This script exploits multiple threads for parallel computing
 # This script has been tested under Pop!_OS 20.04. If you are using it under other systems, please make sure that all packages are properly installed
 # You may run it with multiple panel files, but all of which should be formatted to 4 columns: Gene, Transcript_ID, Protein_ID, Protein_ID_for_PP2
@@ -89,10 +89,11 @@ Sys.sleep(1)
 # Retrieve variant info from GnomAD v2.1
 print("Downloading ref library for each gene...(this might take a while)")
 for (i in genes){
-  cDrv <- chrome(version = "99.0.4844.51", verbose = FALSE) # binman::list_versions("chromedriver")
+  current_ver <- sapply(binman::list_versions("chromedriver"),"[[",1)
+  cDrv <- chrome(version = current_ver, verbose = FALSE)
   eCaps <- list(
     chromeOptions = list(
-      args = c('--headless', '--disable-gpu', '--window-size=1280,800'), # '--headless', 
+      args = c('--headless', '--disable-gpu', '--window-size=1280,800'),
       prefs = list(
         "profile.default_content_settings.popups" = 0L,
         "download.prompt_for_download" = FALSE,
@@ -107,7 +108,7 @@ for (i in genes){
   
   for (gene in i){
     ensg_id <- panel[panel$Gene == gene,]$ENSG_ID
-    geneurl <- paste0("https://gnomad.broadinstitute.org/gene/", ensg_id) # , "?dataset=gnomad_r2_1")
+    geneurl <- paste0("https://gnomad.broadinstitute.org/gene/", ensg_id)
     remDr$navigate(geneurl) # remDr$getCurrentUrl()
     csv_link <- remDr$findElement(using="xpath", "//button[contains(.,'Export variants to CSV')]")
     Sys.sleep(2)
@@ -130,7 +131,7 @@ foreach (reffile = reffiles) %dopar% {
   filename <- paste0(reffile, ".csv")
   file.rename(reffile, filename)
 }
-rm("cDrv", "eCaps", "remDr", "gene", "genes", "geneurl", "filename", "csv_link", "i","ensg_id")
+rm("cDrv", "eCaps", "remDr", "gene", "genes", "geneurl", "filename", "csv_link", "i","ensg_id", "current_ver")
 print("Ref library for each gene is downloaded")
 Sys.sleep(10)
 
@@ -221,7 +222,7 @@ chrs <- c("1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "
 registerDoParallel(numCores)
 foreach (chr = chrs) %dopar% {
   csv1 <- filter(reflib, Chromosome == chr)
-  if(nrow(csv1)>1){
+  if(nrow(csv1)>0){
     csv1 <- csv1[c("Variant", "rsID", "Gene", "HGVS_Consequence", "VEP_Annotation", "Protein_ID", "Protein_Consequence", 
                    "Transcript_ID", "Transcript_Consequence", "Filters_exomes", "Filters_genomes", "Global_AF", 
                    "African_African_American_AF", "Latino_Admixed_American_AF", "Ashkenazi_Jewish_AF", "East_Asian_AF", "South_Asian_AF", 
@@ -285,7 +286,7 @@ if (is_empty(rawcsvs)==FALSE){
   registerDoParallel(numCores)
   foreach (rawcsv = rawcsvs) %dopar% {
     csv1 <- read.csv(rawcsv, header = TRUE)
-    if(nrow(csv1)>1){
+    if(nrow(csv1)>0){
       colnames(csv1) <- c("CHROM","POS","ID", "REF", "ALT", "QUAL", 
                           "FILTER", "INFO", "FORMAT", "Code")
       csv1 <- separate(csv1, "Code",
@@ -309,7 +310,7 @@ allvariants <- list.files(pattern=".translated.csv")
 registerDoParallel(numCores)
 foreach (allvariant = allvariants) %dopar% {
   csv1 <- read.csv(allvariant)
-  if(nrow(csv1)>1){
+  if(nrow(csv1)>0){
     csv2 <- filter(csv1, FILTER == "PASS" & Total_Depth >=50)
     csv3 <- filter(csv2, Variant_Frequency>=0.4 & Variant_Frequency<=0.6)
     csv4 <- filter(csv2, Variant_Frequency>=0.9)
@@ -319,11 +320,16 @@ foreach (allvariant = allvariants) %dopar% {
     csv7 <- filter(csv5, Variant_Frequency>=0.8)
     csv5 <- rbind(csv6, csv7)
     csv1 <- rbind(csv2, csv5)
-    csv1$Ref_length <- nchar(as.character(csv1$REF))
-    csv1$Alt_length <- nchar(as.character(csv1$ALT))
+    csv1$REF <- as.character(csv1$REF)
+    csv1$ALT <- as.character(csv1$ALT)
+    csv1$Ref_length <- nchar(csv1$REF)
+    csv1$Alt_length <- nchar(csv1$ALT)
+    large_indel <- filter(csv1, Alt_length>=6 | Ref_length>=6)
     csv1 <- filter(csv1, Alt_length<6 & Ref_length<6)
     filename <- paste0(allvariant, ".filter.csv")
     write.table(csv1, file=filename, sep=",", row.names = FALSE)
+    filename <- paste0(allvariant, ".largeindel.csv")
+    write.table(large_indel, file=filename, sep=",", row.names = FALSE)
   }
   file.move(allvariant, "./cache/f_all_variants", overwrite=TRUE)
 }
@@ -334,11 +340,13 @@ Sys.sleep(2)
 
 # Format variants info
 print("Trimming data...")
-medcsvs <- list.files(pattern=".filter.csv")
+medcsvs <- list.files(pattern=".csv.filter.csv")
 registerDoParallel(numCores)
 foreach (medcsv = medcsvs) %dopar% {
   csv1 <- read.csv(medcsv)
-  if(nrow(csv1)>1){
+  if(nrow(csv1)>0){
+    csv1$REF <- gsub("TRUE", "T", csv1$REF)
+    csv1$ALT <- gsub("TRUE", "T", csv1$ALT)
     csv1$Sample <- rep(medcsv,nrow(csv1))
     csv1$Sample <- gsub('.genome.vcf.allvariants.csv.translated.csv.filter.csv', '', csv1$Sample)
     csv1$Variant <- paste0(csv1$CHROM, "-", csv1$POS, "-", csv1$REF, "-", csv1$ALT)
@@ -351,6 +359,31 @@ foreach (medcsv = medcsvs) %dopar% {
   }
   file.move(medcsv, "./cache/g_filtered_variants", overwrite=TRUE)
 }
+
+medcsvs <- list.files(pattern=".csv.largeindel.csv")
+registerDoParallel(numCores)
+foreach (medcsv = medcsvs) %dopar% {
+  csv1 <- read.csv(medcsv)
+  csv1$REF <- gsub("TRUE", "T", csv1$REF)
+  csv1$ALT <- gsub("TRUE", "T", csv1$ALT)
+  if(nrow(csv1)>0){
+    csv1$Sample <- rep(medcsv,nrow(csv1))
+    csv1$Sample <- gsub('.genome.vcf.allvariants.csv.translated.csv.largeindel.csv', '', csv1$Sample)
+    csv1$Variant <- paste0(csv1$CHROM, "-", csv1$POS, "-", csv1$REF, "-", csv1$ALT)
+    csv1$Variant <- gsub('chr', '', csv1$Variant)
+    csv1 <- csv1[c("Sample", "Variant", "ID", "QUAL", "FILTER", "Genotype", "Genotype_Quality", 
+                   "Allele_Deapth", "Total_Depth", "Variant_Frequency", "NoiseLevel", "StrandBias", 
+                   "Uncalled", "INFO")]
+    filename <- gsub('.genome.vcf.allvariants.csv.translated.csv.largeindel.csv', '', medcsv)
+    filename <- paste0(filename, ".indeltrim.csv")
+    write.table(csv1, file=filename, sep=",", row.names = FALSE)
+  }
+  file.move(medcsv, "./cache/h_all_large_indels", overwrite=TRUE)
+}
+large_indels <- list.files(pattern=".indeltrim.csv")
+large_indel <- lapply(large_indels, read.csv)
+large_indel <- do.call(rbind.data.frame, large_indel)
+file.move(large_indels, "./cache/i_trimmed_large_indels", overwrite=TRUE)
 print("Trimming completed")
 rm("medcsvs")
 Sys.sleep(2)
@@ -367,7 +400,7 @@ chrs <- c("chr1", "chr2", "chr3", "chr4", "chr5", "chr6", "chr7", "chr8", "chr9"
 registerDoParallel(numCores)
 foreach (chr = chrs) %dopar% {
   csv2 <- filter(csv1, CHROM == chr)
-    if(nrow(csv2)>1){
+    if(nrow(csv2)>0){
       csv2 <- separate(csv2,"Sample",into = c("Sample","Suffix"),sep = "_",remove = FALSE,extra = "merge")
       csv2 <- csv2[c("Sample", "Variant", "ID", "QUAL", "FILTER", "Genotype", "Genotype_Quality", 
                      "Allele_Deapth", "Total_Depth", "Variant_Frequency", "NoiseLevel", "StrandBias", 
@@ -378,7 +411,7 @@ foreach (chr = chrs) %dopar% {
 }
 registerDoParallel(numCores)
 foreach (medwelcsv = medwelcsvs) %dopar% {
-  file.move(medwelcsv, "./cache/h_trimmed_variants", overwrite=TRUE)
+  file.move(medwelcsv, "./cache/j_trimmed_variants", overwrite=TRUE)
 }
 print("Variants info ready")
 rm("medwelcsvs", "csv1", "chrs")
@@ -399,13 +432,42 @@ foreach (chr = chrs) %dopar% {
     csv2 <- read.csv(filename2)
     csv2 <- csv2[!duplicated(csv2[,"Variant"]),]
     csv3 <- add_columns(csv1, csv2, by="Variant")
-    csv3 <- filter(csv3 ,Global_AF<0.01 & African_African_American_AF<0.01 & Latino_Admixed_American_AF<0.01 & 
+    
+    csv3$Global_AF <- replace(csv3$Global_AF, is.na(csv3$Global_AF), 0)
+    csv3$African_African_American_AF <- replace(csv3$African_African_American_AF, is.na(csv3$African_African_American_AF), 0)
+    csv3$Latino_Admixed_American_AF <- replace(csv3$Latino_Admixed_American_AF, is.na(csv3$Latino_Admixed_American_AF), 0)
+    csv3$Ashkenazi_Jewish_AF <- replace(csv3$Ashkenazi_Jewish_AF, is.na(csv3$Ashkenazi_Jewish_AF), 0)
+    csv3$East_Asian_AF <- replace(csv3$East_Asian_AF, is.na(csv3$East_Asian_AF), 0)
+    csv3$South_Asian_AF <- replace(csv3$South_Asian_AF, is.na(csv3$South_Asian_AF), 0)
+    csv3$European_Finnish_AF <- replace(csv3$European_Finnish_AF, is.na(csv3$European_Finnish_AF), 0)
+    csv3$European_Non_Finnish_AF <- replace(csv3$European_Non_Finnish_AF, is.na(csv3$European_Non_Finnish_AF), 0)
+    csv3$Other_AF <- replace(csv3$Other_AF, is.na(csv3$Other_AF), 0)
+    csv3$VEP_Annotation <- replace(csv3$VEP_Annotation, is.na(csv3$VEP_Annotation), "NA")
+    
+    csv3 <- filter(csv3, Global_AF<0.01 & African_African_American_AF<0.01 & Latino_Admixed_American_AF<0.01 & 
                      Ashkenazi_Jewish_AF<0.01 & East_Asian_AF<0.01 & South_Asian_AF<0.01 & 
                      European_Finnish_AF<0.01 & European_Non_Finnish_AF<0.01 & Other_AF<0.01)
+    csv3 <- filter(csv3, !grepl('synonymous_variant', INFO, fixed=TRUE) &
+                     !grepl('5_prime_UTR_variant', INFO, fixed=TRUE) &
+                     !grepl('3_prime_UTR_variant', INFO, fixed=TRUE))
     csv3 <- filter(csv3, VEP_Annotation != "5_prime_UTR_variant" & VEP_Annotation != "synonymous_variant" & 
-                     VEP_Annotation != "intron_variant" & VEP_Annotation !="3_prime_UTR_variant" & 
-                     VEP_Annotation != "stop_retained_variant")
+                     VEP_Annotation !="3_prime_UTR_variant" & VEP_Annotation != "stop_retained_variant")
+    
+    # if INFO and VEP both annotated, remove only when both contain "intron_variant"
+    csv3 <- filter(csv3, !(grepl('intron_variant', INFO, fixed=TRUE) & VEP_Annotation == "intron_variant"))
+    
+    # if only INFO annotated and VEP is NA, remove by INFO
+    csv3 <- filter(csv3, !(grepl('splice_region_variant', INFO, fixed=TRUE) & grepl('intron_variant', INFO, fixed=TRUE)))
+    csv4 <- filter(csv3, grepl('regulatory_region_variant', INFO, fixed=TRUE) | grepl('upstream_gene_variant', INFO, fixed=TRUE) |
+                     grepl('downstream_gene_variant', INFO, fixed=TRUE))
+    csv4 <- filter(csv4, grepl('missense_variant', INFO, fixed=TRUE))
+    csv3 <- filter(csv3, !(grepl('regulatory_region_variant', INFO, fixed=TRUE) | grepl('upstream_gene_variant', INFO, fixed=TRUE) |
+                     grepl('downstream_gene_variant', INFO, fixed=TRUE)))
+    csv3 <- rbind(csv3, csv4)
+    csv3 <- filter(csv3, !(grepl('intron_variant', INFO, fixed=TRUE) & VEP_Annotation == "NA"))
+    
         #Retained:
+        #NA
         #missense_variant
         #stop_gained
         #inframe_deletion
@@ -417,11 +479,11 @@ foreach (chr = chrs) %dopar% {
         #start_lost
         #inframe_insertion
         #protein_altering_variant
-    if(nrow(csv3)>1){
+    if(nrow(csv3)>0){
       write.table(csv3, file=filename3, sep=",", row.names = FALSE)
     }
-    file.move(filename1, "./cache/i_chr_variants", overwrite=TRUE)
-    file.move(filename2, "./cache/j_chr_refs", overwrite=TRUE)
+    file.move(filename1, "./cache/k_chr_variants", overwrite=TRUE)
+    file.move(filename2, "./cache/l_chr_refs", overwrite=TRUE)
   }
 }
 rm("chrs")
@@ -434,10 +496,11 @@ aligns <- list.files(pattern=".align.csv")
 for (align in aligns) {
   rsIDs <- read.csv(align)[, "rsID"]
   rsIDs <- rsIDs[!is.na(rsIDs)]
-  cDrv <- chrome(version = "99.0.4844.51", verbose = FALSE) # binman::list_versions("chromedriver")
+  current_ver <- sapply(binman::list_versions("chromedriver"),"[[",1)
+  cDrv <- chrome(version = current_ver, verbose = FALSE)
   eCaps <- list(
     chromeOptions = list(
-      args = c('--disable-gpu', '--window-size=1280,800'), # '--headless', 
+      args = c('--headless', '--disable-gpu', '--window-size=1280,800'), 
       prefs = list(
         "profile.default_content_settings.popups" = 0L,
         "download.prompt_for_download" = FALSE,
@@ -492,9 +555,9 @@ for (align in aligns) {
 csv1 <- lapply(aligns, read.csv)
 csv1 <- do.call(rbind.data.frame, csv1)
 write.table(csv1, file="all.filtered.csv", sep=",", row.names = FALSE)
-file.move(aligns, "./cache/k_variants_aligns", overwrite=TRUE)
+file.move(aligns, "./cache/m_variants_aligns", overwrite=TRUE)
 rm("cDrv", "eCaps", "table", "table0", "table1", "tables", "elem", "elemtxt", "elemxml", "filename", 
-   "snpurl", "remDr", "rsID", "rsIDs", "csv1", "txt", "new", "align", "aligns", "error")
+   "snpurl", "remDr", "rsID", "rsIDs", "csv1", "txt", "new", "align", "aligns", "error", "current_ver")
 print("Most updated SNP info retrived")
 Sys.sleep(10)
 
@@ -516,12 +579,13 @@ foreach (ncbisnp = ncbisnps) %dopar% {
   file.move(ncbisnp, "./original_files/e_ncbi_snp", overwrite=TRUE)
 }
 Sys.sleep(2)
+
 ncbisnps <- list.files(pattern=".ncbisnp.csv")
 csv1 <- lapply(ncbisnps, read.csv)
 csv1 <- do.call(rbind.data.frame, csv1)
 registerDoParallel(numCores)
 foreach (ncbisnp = ncbisnps) %dopar% {
-  file.move(ncbisnp, "./cache/l_ncbi_snp", overwrite=TRUE)
+  file.move(ncbisnp, "./cache/n_ncbi_snp", overwrite=TRUE)
 }
 csv1 <- csv1[c("rsID", "RefSeq", "Change", "SO_Term", "NCBI_rsID")]
 names(csv1) <- gsub("SO_Term", "NCBI_consequence", names(csv1))
@@ -534,6 +598,7 @@ Sys.sleep(2)
 
 # rsID confirmation, sequenced ins/del/fs isolation, refsnp ins/del/fs isolation
 csv1 <- read.csv("all.filtered.csv", header = TRUE, na.strings=c("","NA"))
+unannotated <- filter(csv1, is.na(HGVS_Consequence))
 csv2 <- read.csv("rsIDs.csv", header = TRUE, na.strings=c("","NA"))
 csv2 <- unique(csv2)
 csv1 <- add_columns(csv1, csv2, by=c("rsID"))
@@ -552,9 +617,10 @@ csv1 <- csv1[ grep("del", csv1$HGVS_Consequence, invert = TRUE), ]
 csv1 <- csv1[ grep("fs", csv1$HGVS_Consequence, invert = TRUE), ]
 write.table(csv1, file="nidfs.filtered.csv", sep=",", row.names = FALSE)
 write.table(csv2, file="idfs.filtered.csv", sep=",", row.names = FALSE)
-file.move("all.filtered.csv", "./cache/m_merge", overwrite=TRUE)
-file.move("rsIDs.csv", "./cache/m_merge", overwrite=TRUE)
+file.move("all.filtered.csv", "./cache/o_merge", overwrite=TRUE)
+file.move("rsIDs.csv", "./cache/o_merge", overwrite=TRUE)
 Sys.sleep(2)
+
 csv1 <- read.csv("all.refsnp.csv")
 csv2 <- csv1 %>% 
   filter(str_detect(Change, "ins") | str_detect(Change, "del") | str_detect(Change, "fs"))
@@ -563,7 +629,7 @@ csv1 <- csv1[ grep("del", csv1$Change, invert = TRUE), ]
 csv1 <- csv1[ grep("fs", csv1$Change, invert = TRUE), ]
 write.table(csv1, file="nidfs.refsnp.csv", sep=",", row.names = FALSE)
 write.table(csv2, file="idfs.refsnp.csv", sep=",", row.names = FALSE)
-file.move("all.refsnp.csv", "./cache/m_merge", overwrite=TRUE)
+file.move("all.refsnp.csv", "./cache/o_merge", overwrite=TRUE)
 rm("csv1", "csv2")
 Sys.sleep(2)
 
@@ -619,8 +685,8 @@ Sys.sleep(1)
 # export
 write.table(csvp, file="nidfs.protein.csv", sep=",", row.names = FALSE)
 write.table(csvt, file="nidfs.transcript.csv", sep=",", row.names = FALSE)
-file.move("nidfs.filtered.csv", "./cache/n_pro_trans", overwrite=TRUE)
-file.move("nidfs.refsnp.csv", "./cache/n_pro_trans", overwrite=TRUE)
+file.move("nidfs.filtered.csv", "./cache/p_pro_trans", overwrite=TRUE)
+file.move("nidfs.refsnp.csv", "./cache/p_pro_trans", overwrite=TRUE)
 txt <- readLines("nidfs.protein.csv")
 txt <- gsub(',NA', ',"Not_Found"', txt)
 writeLines(txt, "nidfs.protein.csv")
@@ -664,8 +730,8 @@ Sys.sleep(1)
 # export
 write.table(csvp, file="idfs.protein.csv", sep=",", row.names = FALSE)
 write.table(csvt, file="idfs.transcript.csv", sep=",", row.names = FALSE)
-file.move("idfs.filtered.csv", "./cache/n_pro_trans", overwrite=TRUE)
-file.move("idfs.refsnp.csv", "./cache/n_pro_trans", overwrite=TRUE)
+file.move("idfs.filtered.csv", "./cache/p_pro_trans", overwrite=TRUE)
+file.move("idfs.refsnp.csv", "./cache/p_pro_trans", overwrite=TRUE)
 txt <- readLines("idfs.protein.csv")
 txt <- gsub(',NA', ',"Not_Found"', txt)
 writeLines(txt, "idfs.protein.csv")
@@ -695,8 +761,8 @@ csv1 <- csv1[ grep("fs", csv1$HGVS_Consequence, invert = TRUE), ]
 csv1 <- csv1[ grep("Ter", csv1$HGVS_Consequence, invert = TRUE), ]
 write.table(csv1, file="protein.pre.csv", sep=",", row.names = FALSE)
 write.table(csv2, file="transcript.pre.csv", sep=",", row.names = FALSE)
-file.move(provar, "./cache/n_pro_trans", overwrite=TRUE)
-file.move(travar, "./cache/n_pro_trans", overwrite=TRUE)
+file.move(provar, "./cache/p_pro_trans", overwrite=TRUE)
+file.move(travar, "./cache/p_pro_trans", overwrite=TRUE)
 rm("csv1", "csv2", "csv3", "provar", "travar")
 Sys.sleep(1)
 # Protein prediction format
@@ -730,8 +796,8 @@ csv2$PolyPhen_format <- paste0("chr", csv2$chr, ":", csv2$pos, " ", csv2$ref, "/
 csv3 <- csv2[c("Provean_format", "PolyPhen_format")]
 csv1 <- cbind(csv1, csv3)
 write.table(csv1, file="transcript.format.csv", sep=",", row.names = FALSE)
-file.move("protein.pre.csv", "./cache/n_pro_trans", overwrite=TRUE)
-file.move("transcript.pre.csv", "./cache/n_pro_trans", overwrite=TRUE)
+file.move("protein.pre.csv", "./cache/p_pro_trans", overwrite=TRUE)
+file.move("transcript.pre.csv", "./cache/p_pro_trans", overwrite=TRUE)
 rm("csv1", "csv2", "csv3")
 Sys.sleep(1)
 
@@ -755,17 +821,19 @@ tra_provean <- as.matrix(tra_provean)
 writeLines(tra_provean, "transcript.provean.txt")
 polyphen <- rbind(pro_polyphen, tra_polyphen)
 polyphen<- unique(polyphen)
-polyphen <- as.matrix(polyphen)
+polyphen <- as.data.frame(polyphen)
+polyphen <- as.matrix(filter(polyphen, !(grepl("Not_Found", PolyPhen_format, fixed=TRUE))))
 writeLines(polyphen, "all.polyphen.txt")
 rm("pro", "pro_provean", "pro_polyphen", "tra", "tra_provean", "tra_polyphen", "polyphen")
 
 
 # Prediction
 print("Performing variant prediction...")
-cDrv <- chrome(version = "99.0.4844.51", verbose = FALSE) # binman::list_versions("chromedriver")
+current_ver <- sapply(binman::list_versions("chromedriver"),"[[",1)
+cDrv <- chrome(version = current_ver, verbose = FALSE)
 eCaps <- list(
   chromeOptions = list(
-    args = c('--headless', '--disable-gpu', '--window-size=1280,800'), # '--headless', 
+    args = c('--headless', '--disable-gpu', '--window-size=1280,800'),
     prefs = list(
       "profile.default_content_settings.popups" = 0L,
       "download.prompt_for_download" = FALSE,
@@ -794,7 +862,7 @@ download$clickElement()
 Sys.sleep(2)
 result <- list.files(pattern=".result.tsv")
 file.rename(result, "protein.result.provean.tsv")
-file.move("protein.provean.txt", "./cache/o_pre_format", overwrite=TRUE)
+file.move("protein.provean.txt", "./cache/q_pre_format", overwrite=TRUE)
 Sys.sleep(2)
 # Provean transcription prediction
 proveantra <- read_file("transcript.provean.txt")
@@ -806,13 +874,13 @@ textarea$sendKeysToElement(list(proveantra))
 Sys.sleep(2)
 submit <-remDr$findElement(using="xpath", "//input[@type='submit']")
 submit$clickElement()
-Sys.sleep(10)
+Sys.sleep(60)
 download <-remDr$findElement(using="xpath", "(//a[contains(text(),'Download')])[3]")
 download$clickElement()
 Sys.sleep(2)
 result <- list.files(pattern=".result.one.tsv")
 file.rename(result, "transcript.result.provean.tsv")
-file.move("transcript.provean.txt", "./cache/o_pre_format", overwrite=TRUE)
+file.move("transcript.provean.txt", "./cache/q_pre_format", overwrite=TRUE)
 Sys.sleep(2)
 # PolyPhen prediction
 polyphen <- read_file("all.polyphen.txt")
@@ -834,7 +902,7 @@ Sys.sleep(2)
 pp2short <-remDr$findElement(using='css selector',"body")$getElementText()
 write.table(pp2short, file="pp2short.txt", sep="\t", row.name=F)
 Sys.sleep(2)
-file.move("all.polyphen.txt", "./cache/o_pre_format", overwrite=TRUE)
+file.move("all.polyphen.txt", "./cache/q_pre_format", overwrite=TRUE)
 remDr$close()
 cDrv$stop()
 # Export
@@ -852,14 +920,12 @@ pp2 <- separate(pp2, "PP2", into=c("o_acc","o_pos","o_aa1","o_aa2","rsid","acc",
                                    "prediction","pph2_prob","pph2_FPR","pph2_TPR"), sep=",")
 write.table(pp2, file="all.result.polyphen.csv", sep=",", row.names = FALSE)
 file.move("pp2short.txt", "./original_files/f_predictions", overwrite=TRUE)
-file.move("pp2.csv", "./cache/p_predictions", overwrite=TRUE)
+file.move("pp2.csv", "./cache/r_predictions", overwrite=TRUE)
 print("All prediction completed")
 rm("cDrv", "eCaps", "download", "refresh", "submit", "proveanpro", "proveantra", "polyphen", "remDr", "result", 
-   "textarea", "row", "row_4", "pp2short", "pp2")
+   "textarea", "row", "row_4", "pp2short", "pp2", "current_ver")
 Sys.sleep(2)
 
-
-# manually move the files from /Download folder and rename as "protein.result.provean.tsv" and "transcript.result.provean.tsv"
 
 # Merge prediction results (unique, add_columns)
 print("Final trimming...")
@@ -886,9 +952,10 @@ csv1 <- add_columns(csv1, csv4, by=c("PolyPhen_format"))
 write.table(csv1, file="all.csv", sep=",", row.names = FALSE)
 file.move(c("protein.format.csv", "protein.result.provean.tsv", "transcript.format.csv", 
             "transcript.result.provean.tsv", "all.result.polyphen.csv"), 
-          "./cache/q_prediction_merge", overwrite=TRUE)
+          "./cache/s_prediction_merge", overwrite=TRUE)
 print("Combining all data...")
 Sys.sleep(1)
+
 csv1 <- read.csv("all.csv")
 csv1$"dbSNP_confirmed_with_NCBI" <- gsub('Not_Found', 
                                          "Check variant location @ https://www.ncbi.nlm.nih.gov/variation/view/, it may be a novel variant", 
@@ -920,7 +987,6 @@ csv1 <- csv1[c("Sample", "Diagnosis", "Gene", "Variant", "dbSNP", "dbSNP_confirm
                "South_Asian_AF", "European_Finnish_AF", "European_Non_Finnish_AF", "Other_AF", "Source", "Flags", "ClinVar_Clinical_Significance", 
                "ClinVar_Variation_ID", "Provean_format", "PolyPhen_format", "Provean_prediction", "SIFT_prediction", "PolyPhen_prediction")]
 Sys.sleep(1)
-
 
 
 # Count
@@ -973,11 +1039,13 @@ colnames(csv4) <- colnames
 print("Writing excel file...")
 Sys.sleep(1)
 now <- Sys.time()
-filename <- paste0(format(now, "%Y-%m-%d_"), "BRStudio_export.xlsx")
-sheets <- list("Summary" = csv1, "AF<0.5%"= csv2, "0.5%<AF<1%" = csv3, "Re-run(lowDP)" = csv4)
+filename <- paste0(format(now, "%Y-%m-%d_%H%M_"), "BRStudio_export.xlsx")
+sheets <- list("Summary" = csv1, "AF<0.5%"= csv2, "0.5%<AF<1%" = csv3, "Re-run (lowDP)" = csv4, 
+               "Unannotated by GnomAD (check manually)" = unannotated, "Large indels (check BAM)" = large_indel)
 write_xlsx(sheets, filename)
-file.move("all.csv", "./cache/r_all_merge", overwrite=TRUE)
+file.move("all.csv", "./cache/t_all_merge", overwrite=TRUE)
 rm("csv1", "csv2", "csv3", "csv4", "samples", "samplecount", "variantcount", "colnames", 
-   "sheets", "now", "panel", "pool", "numCores", "filename", "samplesinthisbatch")
+   "sheets", "now", "panel", "pool", "numCores", "filename", "samplesinthisbatch",
+   "unannotated", "large_indel", "large_indels")
 print("All done! Good luck analysing!")
 Sys.sleep(1)
