@@ -1047,5 +1047,6 @@ file.move("all.csv", "./cache/t_all_merge", overwrite=TRUE)
 rm("csv1", "csv2", "csv3", "csv4", "samples", "samplecount", "variantcount", "colnames", 
    "sheets", "now", "panel", "pool", "numCores", "filename", "samplesinthisbatch",
    "unannotated", "large_indel", "large_indels")
+rm(list = ls())
 print("All done! Good luck analysing!")
 Sys.sleep(1)
