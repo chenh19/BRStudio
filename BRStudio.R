@@ -1,4 +1,4 @@
-# BRStudio v2.1.2
+# BRStudio v2.1.3
 # This script exploits multiple threads for parallel computing
 # This script has been tested under Pop!_OS 20.04. If you are using it under other systems, please make sure that all packages are properly installed
 # You may run it with multiple panel files, but all of which should be formatted to 4 columns: Gene, Transcript_ID, Protein_ID, Protein_ID_for_PP2
