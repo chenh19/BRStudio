@@ -3,21 +3,25 @@
 *Current version: v2.1.2*
 
 ## Setting up the environment
-- This script has been tested under [Ubuntu 20.04 LTS](https://ubuntu.com/download/desktop) and linux systems based on Ubuntu 20.04 LTS. To set up the environment with terminal:  
+- This script has been tested under [Kubuntu 22.04 LTS](https://kubuntu.org/) and linux systems based on Ubuntu 22.04 LTS. To set up the environment with terminal:  
 ```
   sudo apt update && sudo apt upgrade -y
-  sudo apt install dirmngr gnupg apt-transport-https ca-certificates software-properties-common
-  sudo apt-key adv --keyserver keyserver.ubuntu.com --recv-keys E298A3A825C0D65DFD57CBB651716619E084DAB9
-  sudo add-apt-repository 'deb https://cloud.r-project.org/bin/linux/ubuntu focal-cran40/'
+  sudo apt install default-jre default-jdk -y
+  sudo apt install libxml2-dev libssl-dev libcurl4-openssl-dev libnlopt-dev -y
+  sudo apt install texlive-latex-extra -y
+  wget -qO- https://cloud.r-project.org/bin/linux/ubuntu/marutter_pubkey.asc | sudo gpg --dearmor -o /usr/share/keyrings/r-project.gpg
+  echo "deb [signed-by=/usr/share/keyrings/r-project.gpg] https://cloud.r-project.org/bin/linux/ubuntu jammy-cran40/" | sudo tee -a /etc/apt/sources.list.d/r-project.list
   sudo apt update && sudo apt install r-base -y
-  sudo apt build-dep r-cran-rjava -y
-  sudo apt install libxml2-dev libssl-dev libcurl4-openssl-dev -y
+  sudo R CMD javareconf
   sudo -i R
-  if (!requireNamespace("BiocManager", quietly = TRUE))
-    install.packages("BiocManager")
-  BiocManager::install("GenomicRanges")
   install.packages("devtools")
-  install.packages(c("RSelenium", "expss", "foreach", "doParallel", "R.utils", "readr", "dplyr", "tidyr", "filesstrings","readxl", "writexl", "wdman", "stringr", "stringi", "vcfR"))
+  install.packages(c("base64enc", "htmltools", "markdown", "rmarkdown"))
+  install.packages(c("tidyverse", "readxl", "writexl", "expss", "vcfR", "filesstrings", "R.utils", "car"))
+  install.packages(c("foreach", "doParallel"))
+  install.packages(c("rJava", "RSelenium", "wdman"))
+  if (!requireNamespace("BiocManager", quietly = TRUE))
+  install.packages("BiocManager")
+  BiocManager::install(c("GenomicRanges","qvalue"))
 ```
 - If you are using it under other systems, please make sure that all packages are properly installed.  
 
