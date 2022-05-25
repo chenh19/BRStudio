@@ -12,7 +12,7 @@
 
 # Load R packages
 lapply(c("XML", "vcfR", "parallel", "foreach", "doParallel", "R.utils", "RSelenium", "expss", "rlang", "readr", 
-               "dplyr", "tidyr", "filesstrings", "readxl", "writexl", "wdman", "stringr", "stringi", "GenomicRanges"), 
+               "dplyr", "tidyr", "filesstrings", "readxl", "writexl", "wdman", "stringr", "stringi"), 
              require, character.only = TRUE)
 print("Welcome to BRStudio, the system is loading...")
 
