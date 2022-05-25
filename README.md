@@ -5,28 +5,28 @@
 ## Setting up the environment
 - This script has been tested under [Kubuntu 22.04 LTS](https://kubuntu.org/) and linux systems based on Ubuntu 22.04 LTS. To set up the environment with terminal:  
 ```
-  sudo apt update && sudo apt upgrade -y
-  sudo apt install default-jre default-jdk -y
-  sudo apt install libxml2-dev libssl-dev libcurl4-openssl-dev libnlopt-dev -y
-  sudo apt install texlive-latex-extra -y
+sudo apt update && sudo apt upgrade -y
+sudo apt install default-jre default-jdk -y
+sudo apt install libxml2-dev libssl-dev libcurl4-openssl-dev libnlopt-dev -y
+sudo apt install texlive-latex-extra -y
   
-  wget -qO- https://cloud.r-project.org/bin/linux/ubuntu/marutter_pubkey.asc | sudo gpg --dearmor -o /usr/share/keyrings/r-project.gpg
-  echo "deb [signed-by=/usr/share/keyrings/r-project.gpg] https://cloud.r-project.org/bin/linux/ubuntu jammy-cran40/" | sudo tee -a /etc/apt/sources.list.d/r-project.list
-  sudo apt update && sudo apt install r-base -y
-  sudo R CMD javareconf
+wget -qO- https://cloud.r-project.org/bin/linux/ubuntu/marutter_pubkey.asc | sudo gpg --dearmor -o /usr/share/keyrings/r-project.gpg
+echo "deb [signed-by=/usr/share/keyrings/r-project.gpg] https://cloud.r-project.org/bin/linux/ubuntu jammy-cran40/" | sudo tee -a /etc/apt/sources.list.d/r-project.list
+sudo apt update && sudo apt install r-base -y
+sudo R CMD javareconf
   
-  sudo -i R
-    install.packages("devtools")
-    install.packages(c("base64enc", "htmltools", "markdown", "rmarkdown"))
-    install.packages(c("tidyverse", "readxl", "writexl", "expss", "vcfR", "filesstrings", "R.utils", "car"))
-    install.packages(c("foreach", "doParallel"))
-    install.packages(c("rJava", "RSelenium", "wdman"))
-    if (!requireNamespace("BiocManager", quietly = TRUE))
-      install.packages("BiocManager")
-    BiocManager::install(c("GenomicRanges","qvalue"))
-    q()
-    
-   exit
+sudo -i R
+  install.packages("devtools")
+  install.packages(c("base64enc", "htmltools", "markdown", "rmarkdown"))
+  install.packages(c("tidyverse", "readxl", "writexl", "expss", "vcfR", "filesstrings", "R.utils", "car"))
+  install.packages(c("foreach", "doParallel"))
+  install.packages(c("rJava", "RSelenium", "wdman"))
+  if (!requireNamespace("BiocManager", quietly = TRUE))
+    install.packages("BiocManager")
+  BiocManager::install(c("GenomicRanges","qvalue"))
+  q()
+
+exit
 ```
 - If you are using it under other systems, please make sure that all packages are properly installed.  
 
