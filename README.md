@@ -16,13 +16,10 @@ sudo R CMD javareconf
 mkdir ~/.local/share/binman_chromedriver
   
 sudo -i R
-  install.packages("devtools")
+  install.packages(c("devtools", "BiocManager"))
   install.packages(c("tidyverse", "readxl", "writexl", "expss", "vcfR", "filesstrings", "R.utils", "car"))
   install.packages(c("foreach", "doParallel"))
   install.packages(c("rJava", "RSelenium", "wdman"))
-  if (!requireNamespace("BiocManager", quietly = TRUE))
-    install.packages("BiocManager")
-  BiocManager::install(c("GenomicRanges","qvalue")r)
   q()
 
 exit
