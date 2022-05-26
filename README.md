@@ -1,6 +1,6 @@
 # BRStudio
 **An automated NGS data analyzing tool from [Braunstein Lab](https://www.braunstein.team/).**  
-*Current version: v3.0.1*
+*Current version: v3.0.2*
 
 ## Setting up the environment
 - [BRStudio](https://github.com/chenh19/BRStudio/blob/master/BRStudio.R) has been tested under [Kubuntu 22.04 LTS](https://kubuntu.org/) and linux systems based on Ubuntu 22.04 LTS. 
