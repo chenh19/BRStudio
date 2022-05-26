@@ -27,3 +27,4 @@ sudo chmod +x /usr/share/applications/rstudio.desktop
 
 sudo apt-get autoremove -y
 sudo apt-get clean
+#reboot
