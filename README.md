@@ -16,5 +16,5 @@
 - Running no more than 200 samples in each batch is recommended.  
 - For each batch, 30 tp 60 minutes might be required, please make sure that your computer/server won't go to sleep.  
 - Put ".panel.xlsx", ".pool.xlsx", and ".vcf.gz" files in the same folder with this script.  
-- Launch RStudio, go to **File** menu and **Open File...** > select the script, then go to **Session** menu and **Set Working Directory** > **To Source File Location**.  
+- Launch RStudio, go to **File** menu and **Open File** > select the script, then go to **Session** menu and **Set Working Directory** > **To Source File Location**.  
 - Run the script.
