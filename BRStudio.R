@@ -14,7 +14,6 @@
 lapply(c("XML", "vcfR", "parallel", "foreach", "doParallel", "R.utils", "RSelenium", "expss", "rlang", "readr", 
                "dplyr", "tidyr", "filesstrings", "readxl", "writexl", "wdman", "stringr", "stringi"), 
              require, character.only = TRUE)
-chrome(version = "102.0.5005.61", verbose = FALSE)
 print("Welcome to BRStudio, the system is loading...")
 
 
@@ -31,8 +30,9 @@ if (dir.exists("cache")==FALSE){
 
 # Set cpu cores for parallel computing
 numCores <- detectCores(all.tests = FALSE, logical = TRUE)
+chrome(version = "102.0.5005.61", verbose = FALSE)
 print(paste("Parallel computing:", numCores, "cores will be used for data processing"))
-Sys.sleep(1)
+Sys.sleep(10)
 
 
 # Load gene panel files, remove duplicates
