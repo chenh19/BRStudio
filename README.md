@@ -3,7 +3,7 @@
 *Current version: v2.1.3*
 
 ## Setting up the environment
-- This script has been tested under [Kubuntu 22.04 LTS](https://kubuntu.org/) and linux systems based on Ubuntu 22.04 LTS. To set up the environment with terminal, please execute the ```install.sh``` from the **setup** folder.
+- This script has been tested under [Kubuntu 22.04 LTS](https://kubuntu.org/) and linux systems based on Ubuntu 22.04 LTS. To set up the environment with terminal, please execute the ```install.sh``` from the [setup](https://github.com/chenh19/BRStudio/tree/master/setup) folder.
 
 - If you are using it under other systems, please make sure that all packages are properly installed.  
 
