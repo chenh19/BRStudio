@@ -19,7 +19,7 @@ sudo -i R
   install.packages(c("devtools", "BiocManager"))
   install.packages(c("tidyverse", "readxl", "writexl", "expss", "vcfR", "filesstrings", "R.utils", "car"))
   install.packages(c("foreach", "doParallel"))
-  install.packages(c("rJava", "RSelenium", "wdman"))
+  install.packages(c("rJava", "RSelenium"))
   q()
 
 exit
