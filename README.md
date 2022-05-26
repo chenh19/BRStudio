@@ -13,7 +13,8 @@
 - You may run it with multiple panel files, but all of which should be formatted to 4 columns: "Gene", "Transcript ID", "Protein ID", "Protein ID for PP2".  
 - You may run it with multiple pool files, but all of which should be formatted to 2 columns: "Sample", "Diagnosis".    
 - This script will only process ".genome.vcf" files. If other vcf files are found, they will not be processed but only be archived.  
-- Running no more than 96 samples in each batch is recommended.  
-- For each batch, 20 to 30 minutes might be required, please make sure that your computer/server won't go to sleep.  
+- Running no more than 200 samples in each batch is recommended.  
+- For each batch, 30 tp 60 minutes might be required, please make sure that your computer/server won't go to sleep.  
 - Put ".panel.xlsx", ".pool.xlsx", and ".vcf.gz" files in the same folder with this script.  
-- Open the script directly from the parent folder with [RStudio](https://rstudio.com/products/rstudio/) to start.  
+- Launch RStudio, open the BRStudio script from the folder, then go to **Session** menu and set working directory **To Source File Location**.  
+- Run the script.
