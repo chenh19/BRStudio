@@ -27,6 +27,7 @@ R
   q()
   
 exit
+reboot
 ```
 - If you are using it under other systems, please make sure that all packages are properly installed.  
 
