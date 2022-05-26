@@ -23,7 +23,7 @@ sudo R
 
 R
   library(wdman)
-  chrome(version = "latest", verbose = FALSE)
+  chrome(version = "latest")
   q()
   
 exit
