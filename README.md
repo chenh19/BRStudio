@@ -10,8 +10,8 @@
 ## Running the script
 - This script exploits multiple threads for parallel computing.  
 - This script automatically retrives variant info from [GnomAD](https://gnomad.broadinstitute.org/), [NCBI SNP](https://www.ncbi.nlm.nih.gov/snp/), [Provean](http://provean.jcvi.org/index.php) and [PolyPhen](http://genetics.bwh.harvard.edu/pph2/bgi.shtml), please make sure that you are connected to the internet.    
-- You may run it with multiple panel files, but all of which should be formatted to 5 columns: "Gene", "Transcript_ID", "Protein_ID", "Protein_ID_for_PP2", "ENSG_ID" (refer to [Example](https://github.com/chenh19/BRStudio/tree/master/Example)).  
-- You may run it with multiple pool files, but all of which should be formatted to 2 columns: "Sample", "Diagnosis"(refer to [Example](https://github.com/chenh19/BRStudio/tree/master/Example)).  
+- You may run it with multiple panel files, but all of which should be formatted to 5 columns: "Gene", "Transcript_ID", "Protein_ID", "Protein_ID_for_PP2", "ENSG_ID"  (refer to [examples](https://github.com/chenh19/BRStudio/tree/master/examples)).  
+- You may run it with multiple pool files, but all of which should be formatted to 2 columns: "Sample", "Diagnosis" (refer to [examples](https://github.com/chenh19/BRStudio/tree/master/examples)).  
 - This script will only process ".genome.vcf" files. If other vcf files are found, they will not be processed but only be archived.  
 - Running no more than 200 samples in each batch is recommended.  
 - For each batch, 30 tp 60 minutes might be required, please make sure that your computer/server won't go to sleep.  
