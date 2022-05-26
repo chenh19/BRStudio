@@ -1,1 +1,0 @@
-wdman::chrome(version = "latest")
