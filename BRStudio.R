@@ -14,6 +14,7 @@
 lapply(c("XML", "vcfR", "parallel", "foreach", "doParallel", "R.utils", "RSelenium", "expss", "rlang", "readr", 
                "dplyr", "tidyr", "filesstrings", "readxl", "writexl", "wdman", "stringr", "stringi"), 
              require, character.only = TRUE)
+chrome(version = "102.0.5005.61", verbose = FALSE)
 print("Welcome to BRStudio, the system is loading...")
 
 
