@@ -14,7 +14,7 @@ echo "deb [signed-by=/usr/share/keyrings/r-project.gpg] https://cloud.r-project.
 sudo apt update && sudo apt install r-base -y
 sudo R CMD javareconf
   
-sudo -i R
+sudo R
   install.packages(c("devtools", "BiocManager"))
   install.packages(c("tidyverse", "readxl", "writexl", "expss", "vcfR", "filesstrings", "R.utils", "car"))
   install.packages(c("foreach", "doParallel"))
