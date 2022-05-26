@@ -21,6 +21,11 @@ sudo -i R
   install.packages(c("rJava", "RSelenium"))
   q()
 
+R
+  library(wdman)
+  chrome(version = "102.0.5005.61", verbose = FALSE)
+  q()
+  
 exit
 ```
 - If you are using it under other systems, please make sure that all packages are properly installed.  
