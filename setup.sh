@@ -28,10 +28,10 @@ sudo chmod +x /usr/share/applications/rstudio.desktop
 sudo apt-get autoremove -y
 sudo apt-get clean
 
+if [ -e "examples" ]; then rm -rf "examples"; fi
 if [ -f ./LICENSE ]; then rm ./LICENSE; fi
 if [ -f ./README.md ]; then rm ./README.md; fi
 if [ -f ./setup.sh ]; then rm ./setup.sh; fi
-if [ -e "examples" ]; then rm -rf "examples"; fi
 
 echo 'All done!'
 if [ -f /var/run/reboot-required ]; then echo 'Please reboot the system.'; fi
