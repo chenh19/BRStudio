@@ -27,3 +27,8 @@ sudo chmod +x /usr/share/applications/rstudio.desktop
 
 sudo apt-get autoremove -y
 sudo apt-get clean
+
+echo 'All done!'
+if [ -f /var/run/reboot-required ]; then
+    echo 'Please reboot the system.'
+fi
