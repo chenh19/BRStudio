@@ -15,15 +15,12 @@ sudo apt update && sudo apt install r-base -y
 sudo R CMD javareconf
   
 sudo R
-  install.packages(c("devtools", "BiocManager"))
-  install.packages(c("tidyverse", "readxl", "writexl", "expss", "vcfR", "filesstrings", "R.utils", "car"))
-  install.packages(c("foreach", "doParallel"))
-  install.packages(c("rJava", "RSelenium"))
-  q()
+install.packages(c("devtools", "BiocManager", "tidyverse", "readxl", "writexl", "expss", "vcfR", "filesstrings", "R.utils", "car", "foreach", "doParallel", "rJava", "RSelenium"))
+q()
 
 R
-  wdman::chrome(version = "latest")
-  q()
+wdman::chrome(version = "latest")
+q()
   
 exit
 reboot
