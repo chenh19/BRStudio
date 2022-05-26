@@ -30,9 +30,8 @@ if (dir.exists("cache")==FALSE){
 
 # Set cpu cores for parallel computing
 numCores <- detectCores(all.tests = FALSE, logical = TRUE)
-chrome(version = "102.0.5005.61", verbose = FALSE)
 print(paste("Parallel computing:", numCores, "cores will be used for data processing"))
-Sys.sleep(10)
+Sys.sleep(1)
 
 
 # Load gene panel files, remove duplicates
