@@ -18,20 +18,20 @@ sudo apt-get install r-base -y
 # configure java for R
 sudo R CMD javareconf
 
-# install R packages and download web scraping driver
+# install R packages and download web scraping driver using R scripts
 echo "install.packages(c('devtools', 'BiocManager', 'tidyverse', 'readxl', 'writexl', 'expss', 'vcfR', 'filesstrings', 'R.utils', 'car', 'foreach', 'doParallel', 'rJava', 'RSelenium'))" > packages.R
 echo "wdman::chrome(version = 'latest')" > webdriver.R
 sudo Rscript ./packages.R
 Rscript ./webdriver.R
 rm ./packages.R ./webdriver.R
 
-# install RStudio and packages that no longer available in ubuntu 22.04
+# install RStudio and dependency that no longer provided by ubuntu 22.04
 wget http://archive.ubuntu.com/ubuntu/pool/main/o/openssl/libssl1.1_1.1.0g-2ubuntu4_amd64.deb
 wget https://download1.rstudio.org/desktop/bionic/amd64/rstudio-2022.02.2-485-amd64.deb
 sudo apt-get install -f -y ./libssl1.1_1.1.0g-2ubuntu4_amd64.deb ./rstudio-2022.02.2-485-amd64.deb
 rm ./libssl1.1_1.1.0g-2ubuntu4_amd64.deb ./rstudio-2022.02.2-485-amd64.deb
 
-# configure RStudio exec command in desktop file so that it can run
+# configure RStudio exec command in the desktop file so that it will not show a blank window
 sudo sed -i 's+Exec=/usr/lib/rstudio/bin/rstudio %F+Exec=/usr/lib/rstudio/bin/rstudio --no-sandbox %F+g' /usr/share/applications/rstudio.desktop
 sudo chmod +x /usr/share/applications/rstudio.desktop
 
