@@ -3,7 +3,7 @@
 # This shell script is intented for Kubuntu 22.04 LTS and other linux systems based on Ubuntu 22.04 LTS
 # To set up the environment for BRStudio, simply ```bash ./setup.sh``` in terminal
 
-# update and install packages required by R and R packages installing
+# update system and install packages required by R and R packages installing
 sudo apt-get update
 sudo apt-get dist-upgrade -y
 sudo apt-get upgrade -y
