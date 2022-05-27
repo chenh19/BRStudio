@@ -3,7 +3,7 @@
 *Current version: v3.0.2*
 
 ## Setting up the environment
-- [BRStudio](https://github.com/chenh19/BRStudio/blob/master/BRStudio.R) has been tested under [Kubuntu 22.04 LTS](https://kubuntu.org/) and linux systems based on Ubuntu 22.04 LTS. 
+- [BRStudio](https://github.com/chenh19/BRStudio/blob/master/BRStudio.R) has been tested under [Kubuntu 22.04 LTS](https://kubuntu.org/) and other linux systems based on Ubuntu 22.04 LTS. 
 - To set up the environment, simply download the [latest release](https://github.com/chenh19/BRStudio/releases), extract and open the master folder in terminal, then execute [setup.sh](https://github.com/chenh19/BRStudio/blob/master/setup.sh) with ```bash ./setup.sh```.
 - If you are using it under other systems, please make sure that all relevant packages are properly installed.  
 
