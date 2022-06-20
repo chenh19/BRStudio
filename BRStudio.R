@@ -1049,5 +1049,5 @@ rm("csv1", "csv2", "csv3", "csv4", "samples", "samplecount", "variantcount", "co
    "sheets", "now", "panel", "pool", "numCores", "filename", "samplesinthisbatch",
    "unannotated", "large_indel", "large_indels")
 rm(list = ls())
-print("All done! Good luck analysing!")
+print("All done! Good luck analyzing!")
 Sys.sleep(1)
