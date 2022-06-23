@@ -1,7 +1,7 @@
 # BRStudio
 **An automated NGS data analyzing tool from [Braunstein Lab](https://www.braunstein.team/).**  
 *Current version: v3.0.5*  
-[![DOI](https://zenodo.org/badge/237900760.svg)](https://zenodo.org/badge/latestdoi/237900760)  
+[![DOI](https://zenodo.org/badge/237900760.svg)](https://doi.org/10.5281/zenodo.6632038)  
 
 
 ## Setting up the environment
