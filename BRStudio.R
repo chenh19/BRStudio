@@ -1,6 +1,6 @@
-# BRStudio v3.0.5
+# BRStudio v3.1.0
 # This script exploits multiple threads for parallel computing
-# This script has been tested under Kubuntu 22.04 LTS. If you are using it under other systems, please make sure that all packages are properly installed
+# This script has been tested under Debian 12.5.0. If you are using it under other systems, please make sure that all packages are properly installed
 # You may run it with multiple panel files, but all of which should be formatted to 5 columns: Gene, Transcript_ID, Protein_ID, Protein_ID_for_PP2, ENSG_ID
 # You may run it with multiple pool files, but all of which should be formatted to 2 columns: Sample, Diagnosis
 # This script will only process ".genome.vcf" files. If other vcf files are found, they will not be processed but only be archived
@@ -88,13 +88,15 @@ Sys.sleep(1)
 
 
 # Retrieve variant info from GnomAD v2.1
+system('[ ! -d ~/Downloads/organize/ ] && mkdir ~/Downloads/organize/')
+system('mv -f ~/Downloads/*csv ~/Downloads/organize/')
 print("Downloading ref library for each gene...(this might take a while)")
 for (i in genes){
-  current_ver <- sapply(binman::list_versions("chromedriver"),"[[",1)
-  cDrv <- chrome(version = current_ver, verbose = FALSE)
+  #current_ver <- sapply(binman::list_versions("chromedriver"),"[[",1)
+  cDrv <- chrome(version = "114.0.5735.90", verbose = FALSE) #cDrv <- chrome(version = current_ver, verbose = FALSE)
   eCaps <- list(
     chromeOptions = list(
-      args = c('--headless', '--disable-gpu', '--window-size=1280,800'),
+      args = c('--disable-gpu', '--window-size=1280,800'),#args = c('--headless', '--disable-gpu', '--window-size=1280,800'),
       prefs = list(
         "profile.default_content_settings.popups" = 0L,
         "download.prompt_for_download" = FALSE,
@@ -115,11 +117,13 @@ for (i in genes){
     Sys.sleep(2)
     csv_link$clickElement()
     Sys.sleep(2)
+    system('mv -f ~/Downloads/*.csv ./')
     reffile <- list.files(pattern=".csv")
     if (is_empty(reffile)==FALSE){
       filename <- paste0(gene, ".ref")
       file.rename(reffile, filename)
     }
+    Sys.sleep(2)
   }
   remDr$navigate("https://gnomad.broadinstitute.org/")
   remDr$close()
@@ -132,57 +136,63 @@ foreach (reffile = reffiles) %dopar% {
   filename <- paste0(reffile, ".csv")
   file.rename(reffile, filename)
 }
-rm("cDrv", "eCaps", "remDr", "gene", "genes", "geneurl", "filename", "csv_link", "i","ensg_id", "current_ver")
+rm("cDrv", "eCaps", "remDr", "gene", "genes", "geneurl", "filename", "csv_link", "i","ensg_id")
 print("Ref library for each gene is downloaded")
 Sys.sleep(10)
 
 
 # Organize variant ref info
 nans <- read.csv("NANS.ref.csv", header = TRUE, na.strings=c("","NA"))
-ash_jew <- c("Allele_Count_Ashkenazi_Jewish", "Allele_Number_Ashkenazi_Jewish", "Homozygote_Count_Ashkenazi_Jewish", "Hemizygote_Count_Ashkenazi_Jewish")
-nans[ , ash_jew] <- 0
+add <- c("Allele_Count_Ashkenazi_Jewish", "Allele_Number_Ashkenazi_Jewish", "Homozygote_Count_Ashkenazi_Jewish", "Hemizygote_Count_Ashkenazi_Jewish", 
+         "Exome_GroupMax_FAF_group", "Exome_GroupMax_FAF_frequency", "Genome_GroupMax_FAF_group", "Genome_GroupMax_FAF_frequency")
+nans[ , add] <- 0
 nans[,"Allele_Number_Ashkenazi_Jewish"] <-1
-colnames(nans) <- c("Chromosome", "Position", "rsID", "Reference", "Alternate", "Source", "Filters_exomes", "Filters_genomes", "Transcript",
+colnames(nans) <- c("gnomAD_ID", 
+                    "Chromosome", "Position", "rsID", "Reference", "Alternate", "Source", "Filters_exomes", "Filters_genomes", "Transcript", 
                     "HGVS_Consequence", "Protein_Consequence", "Transcript_Consequence", "VEP_Annotation", "ClinVar_Clinical_Significance", "ClinVar_Variation_ID", "Flags", 
                     "Allele_Count", "Allele_Number", "Allele_Frequency", "Homozygote_Count", "Hemizygote_Count", 
+                    "Allele_Count_South_Asian", "Allele_Number_South_Asian", "Homozygote_Count_South_Asian", "Hemizygote_Count_South_Asian", 
                     "Allele_Count_African_African_American", "Allele_Number_African_African_American", "Homozygote_Count_African_African_American", "Hemizygote_Count_African_African_American", 
                     "Allele_Count_Latino_Admixed_American", "Allele_Number_Latino_Admixed_American", "Homozygote_Count_Latino_Admixed_American", "Hemizygote_Count_Latino_Admixed_American", 
                     "Allele_Count_East_Asian", "Allele_Number_East_Asian", "Homozygote_Count_East_Asian", "Hemizygote_Count_East_Asian", 
                     "Allele_Count_European_Finnish", "Allele_Number_European_Finnish", "Homozygote_Count_European_Finnish", "Hemizygote_Count_European_Finnish", 
                     "Allele_Count_European_non_Finnish", "Allele_Number_European_non_Finnish", "Homozygote_Count_European_non_Finnish", "Hemizygote_Count_European_non_Finnish", 
                     "Allele_Count_Other", "Allele_Number_Other", "Homozygote_Count_Other", "Hemizygote_Count_Other", 
-                    "Allele_Count_South_Asian", "Allele_Number_South_Asian", "Homozygote_Count_South_Asian", "Hemizygote_Count_South_Asian",
-                    "Allele_Count_Ashkenazi_Jewish", "Allele_Number_Ashkenazi_Jewish", "Homozygote_Count_Ashkenazi_Jewish", "Hemizygote_Count_Ashkenazi_Jewish")
-nans <- nans[c("Chromosome", "Position", "rsID", "Reference", "Alternate", "Source", "Filters_exomes", "Filters_genomes", "Transcript",
-               "HGVS_Consequence", "Protein_Consequence", "Transcript_Consequence", "VEP_Annotation", "ClinVar_Clinical_Significance", "ClinVar_Variation_ID", "Flags", 
-               "Allele_Count", "Allele_Number", "Allele_Frequency", "Homozygote_Count", "Hemizygote_Count", 
-               "Allele_Count_African_African_American", "Allele_Number_African_African_American", "Homozygote_Count_African_African_American", "Hemizygote_Count_African_African_American", 
-               "Allele_Count_Latino_Admixed_American", "Allele_Number_Latino_Admixed_American", "Homozygote_Count_Latino_Admixed_American", "Hemizygote_Count_Latino_Admixed_American", 
-               "Allele_Count_Ashkenazi_Jewish", "Allele_Number_Ashkenazi_Jewish", "Homozygote_Count_Ashkenazi_Jewish", "Hemizygote_Count_Ashkenazi_Jewish", 
-               "Allele_Count_East_Asian", "Allele_Number_East_Asian", "Homozygote_Count_East_Asian", "Hemizygote_Count_East_Asian", 
-               "Allele_Count_European_Finnish", "Allele_Number_European_Finnish", "Homozygote_Count_European_Finnish", "Hemizygote_Count_European_Finnish", 
-               "Allele_Count_European_non_Finnish", "Allele_Number_European_non_Finnish", "Homozygote_Count_European_non_Finnish", "Hemizygote_Count_European_non_Finnish", 
-               "Allele_Count_Other", "Allele_Number_Other", "Homozygote_Count_Other", "Hemizygote_Count_Other", 
-               "Allele_Count_South_Asian", "Allele_Number_South_Asian", "Homozygote_Count_South_Asian", "Hemizygote_Count_South_Asian")]
+                    "Allele_Count_Ashkenazi_Jewish", "Allele_Number_Ashkenazi_Jewish", "Homozygote_Count_Ashkenazi_Jewish", "Hemizygote_Count_Ashkenazi_Jewish", 
+                    "Exome_GroupMax_FAF_group", "Exome_GroupMax_FAF_frequency", "Genome_GroupMax_FAF_group", "Genome_GroupMax_FAF_frequency")
+nans <- nans[c("gnomAD_ID",
+               "Chromosome", "Position", "rsID", "Reference", "Alternate", "Source", "Filters_exomes", "Filters_genomes", "Transcript",
+               "HGVS_Consequence", "Protein_Consequence", "Transcript_Consequence", "VEP_Annotation", "ClinVar_Clinical_Significance", "ClinVar_Variation_ID", "Flags",
+               "Allele_Count", "Allele_Number", "Allele_Frequency", "Homozygote_Count", "Hemizygote_Count",
+               "Exome_GroupMax_FAF_group", "Exome_GroupMax_FAF_frequency", "Genome_GroupMax_FAF_group", "Genome_GroupMax_FAF_frequency",
+               "Allele_Count_Latino_Admixed_American", "Allele_Number_Latino_Admixed_American", "Homozygote_Count_Latino_Admixed_American", "Hemizygote_Count_Latino_Admixed_American",
+               "Allele_Count_European_non_Finnish", "Allele_Number_European_non_Finnish", "Homozygote_Count_European_non_Finnish", "Hemizygote_Count_European_non_Finnish",
+               "Allele_Count_African_African_American", "Allele_Number_African_African_American", "Homozygote_Count_African_African_American", "Hemizygote_Count_African_African_American",
+               "Allele_Count_Ashkenazi_Jewish", "Allele_Number_Ashkenazi_Jewish", "Homozygote_Count_Ashkenazi_Jewish", "Hemizygote_Count_Ashkenazi_Jewish",
+               "Allele_Count_East_Asian", "Allele_Number_East_Asian", "Homozygote_Count_East_Asian", "Hemizygote_Count_East_Asian",
+               "Allele_Count_European_Finnish", "Allele_Number_European_Finnish", "Homozygote_Count_European_Finnish", "Hemizygote_Count_European_Finnish",
+               "Allele_Count_South_Asian", "Allele_Number_South_Asian", "Homozygote_Count_South_Asian", "Hemizygote_Count_South_Asian",
+               "Allele_Count_Other", "Allele_Number_Other", "Homozygote_Count_Other", "Hemizygote_Count_Other")]
 write.table(nans, file="NANS.ref.csv", sep=",", row.names = FALSE)
-
+rm("add", "nans")
 
 reffiles <- list.files(pattern='.ref.csv')
 registerDoParallel(numCores)
 foreach (reffile = reffiles) %dopar% {
   csv1 <- read.csv(reffile, header = TRUE, na.strings=c("","NA"))
-  colnames(csv1) <- c("Chromosome", "Position", "rsID", "Reference", "Alternate", "Source", "Filters_exomes", "Filters_genomes", "Transcript",
+  colnames(csv1) <- c("gnomAD_ID",
+                      "Chromosome", "Position", "rsID", "Reference", "Alternate", "Source", "Filters_exomes", "Filters_genomes", "Transcript", 
                       "HGVS_Consequence", "Protein_Consequence", "Transcript_Consequence", "VEP_Annotation", "ClinVar_Clinical_Significance", "ClinVar_Variation_ID", "Flags", 
                       "Allele_Count", "Allele_Number", "Allele_Frequency", "Homozygote_Count", "Hemizygote_Count", 
-                      "Allele_Count_African_African_American", "Allele_Number_African_African_American", "Homozygote_Count_African_African_American", "Hemizygote_Count_African_African_American", 
+                      "Exome_GroupMax_FAF_group", "Exome_GroupMax_FAF_frequency", "Genome_GroupMax_FAF_group", "Genome_GroupMax_FAF_frequency", 
                       "Allele_Count_Latino_Admixed_American", "Allele_Number_Latino_Admixed_American", "Homozygote_Count_Latino_Admixed_American", "Hemizygote_Count_Latino_Admixed_American", 
+                      "Allele_Count_European_non_Finnish", "Allele_Number_European_non_Finnish", "Homozygote_Count_European_non_Finnish", "Hemizygote_Count_European_non_Finnish", 
+                      "Allele_Count_African_African_American", "Allele_Number_African_African_American", "Homozygote_Count_African_African_American", "Hemizygote_Count_African_African_American", 
                       "Allele_Count_Ashkenazi_Jewish", "Allele_Number_Ashkenazi_Jewish", "Homozygote_Count_Ashkenazi_Jewish", "Hemizygote_Count_Ashkenazi_Jewish", 
                       "Allele_Count_East_Asian", "Allele_Number_East_Asian", "Homozygote_Count_East_Asian", "Hemizygote_Count_East_Asian", 
                       "Allele_Count_European_Finnish", "Allele_Number_European_Finnish", "Homozygote_Count_European_Finnish", "Hemizygote_Count_European_Finnish", 
-                      "Allele_Count_European_non_Finnish", "Allele_Number_European_non_Finnish", "Homozygote_Count_European_non_Finnish", "Hemizygote_Count_European_non_Finnish", 
-                      "Allele_Count_Other", "Allele_Number_Other", "Homozygote_Count_Other", "Hemizygote_Count_Other", 
-                      "Allele_Count_South_Asian", "Allele_Number_South_Asian", "Homozygote_Count_South_Asian", "Hemizygote_Count_South_Asian")
-
+                      "Allele_Count_South_Asian", "Allele_Number_South_Asian", "Homozygote_Count_South_Asian", "Hemizygote_Count_South_Asian", 
+                      "Allele_Count_Other", "Allele_Number_Other", "Homozygote_Count_Other", "Hemizygote_Count_Other")
   csv1$Gene <- rep(reffile,nrow(csv1))
   csv1$Gene <- gsub('.ref.csv', '', csv1$Gene)
   
@@ -233,7 +243,7 @@ foreach (chr = chrs) %dopar% {
     write.table(csv1, file=filename, sep=",", row.names = FALSE)
   }
 }
-rm("reflib", "chrs", "reffile", "reffiles", "ash_jew", "nans")
+rm("reflib", "chrs", "reffile", "reffiles")
 Sys.sleep(1)
 
 
@@ -495,13 +505,15 @@ Sys.sleep(10)
 print("Retriving most updated SNP info from NCBI...(This might take a while")
 aligns <- list.files(pattern=".align.csv")
 for (align in aligns) {
+  #align <- "chr1.align.csv"
   rsIDs <- read.csv(align)[, "rsID"]
   rsIDs <- rsIDs[!is.na(rsIDs)]
-  current_ver <- sapply(binman::list_versions("chromedriver"),"[[",1)
-  cDrv <- chrome(version = current_ver, verbose = FALSE)
+  rsIDs <- unique(rsIDs)
+  #current_ver <- sapply(binman::list_versions("chromedriver"),"[[",1)
+  cDrv <- chrome(version = "114.0.5735.90", verbose = FALSE)
   eCaps <- list(
     chromeOptions = list(
-      args = c('--headless', '--disable-gpu', '--window-size=1280,800'), 
+      args = c('--disable-gpu', '--window-size=1280,800'), #args = c('--headless', '--disable-gpu', '--window-size=1280,800'),
       prefs = list(
         "profile.default_content_settings.popups" = 0L,
         "download.prompt_for_download" = FALSE,
@@ -510,6 +522,7 @@ for (align in aligns) {
     )
   )
   for (rsID in rsIDs) {
+    #rsID <- "rs769742294"
     remDr <- remoteDriver(browserName = "chrome", port = 4567L, extraCapabilities = eCaps)
     remDr$open()
     Sys.sleep(1)
@@ -520,7 +533,7 @@ for (align in aligns) {
     # snpurl<- "https://www.ncbi.nlm.nih.gov/snp/rs754435604"
     remDr$navigate (snpurl)
     Sys.sleep(2)
-    txt<-remDr$findElement(using='css selector',"body")$getElementText()
+    txt <- remDr$findElement(using='css selector',"body")$getElementText()
     if (str_detect(txt, "was merged into") == TRUE){
       elem <- remDr$findElement(using="xpath", "//div[@id='main_content']/main/div[4]/div[2]/dd/a")
       # Sys.sleep(2)
@@ -557,8 +570,8 @@ csv1 <- lapply(aligns, read.csv)
 csv1 <- do.call(rbind.data.frame, csv1)
 write.table(csv1, file="all.filtered.csv", sep=",", row.names = FALSE)
 file.move(aligns, "./cache/m_variants_aligns", overwrite=TRUE)
-rm("cDrv", "eCaps", "table", "table0", "table1", "tables", "elem", "elemtxt", "elemxml", "filename", 
-   "snpurl", "remDr", "rsID", "rsIDs", "csv1", "txt", "new", "align", "aligns", "error", "current_ver")
+rm("cDrv", "eCaps", "table", "table0", "table1", "elem", "elemtxt", "elemxml", "filename", 
+   "snpurl", "remDr", "rsID", "rsIDs", "csv1", "txt", "new", "align", "aligns", "error")
 print("Most updated SNP info retrived")
 Sys.sleep(10)
 
@@ -801,8 +814,6 @@ file.move("protein.pre.csv", "./cache/p_pro_trans", overwrite=TRUE)
 file.move("transcript.pre.csv", "./cache/p_pro_trans", overwrite=TRUE)
 rm("csv1", "csv2", "csv3")
 Sys.sleep(1)
-
-
 # Prepare for prediction
 pro <- read.csv("protein.format.csv")
 pro_polyphen <- pro[c("PolyPhen_format")]
@@ -829,12 +840,14 @@ rm("pro", "pro_provean", "pro_polyphen", "tra", "tra_provean", "tra_polyphen", "
 
 
 # Prediction
+system('[ ! -d ~/Downloads/organize/ ] && mkdir ~/Downloads/organize/')
+system('mv -f ~/Downloads/*tsv ~/Downloads/organize/')
 print("Performing variant prediction...")
-current_ver <- sapply(binman::list_versions("chromedriver"),"[[",1)
-cDrv <- chrome(version = current_ver, verbose = FALSE)
+#current_ver <- sapply(binman::list_versions("chromedriver"),"[[",1)
+cDrv <- chrome(version = "114.0.5735.90", verbose = FALSE)
 eCaps <- list(
   chromeOptions = list(
-    args = c('--headless', '--disable-gpu', '--window-size=1280,800'),
+    args = c('--disable-gpu', '--window-size=1280,800'),#args = c('--headless', '--disable-gpu', '--window-size=1280,800'),
     prefs = list(
       "profile.default_content_settings.popups" = 0L,
       "download.prompt_for_download" = FALSE,
@@ -861,6 +874,8 @@ Sys.sleep(60)
 download <-remDr$findElement(using="xpath", "(//a[contains(text(),'Download')])[2]")
 download$clickElement()
 Sys.sleep(2)
+system('mv -f ~/Downloads/*.tsv ./')
+Sys.sleep(2)
 result <- list.files(pattern=".result.tsv")
 file.rename(result, "protein.result.provean.tsv")
 file.move("protein.provean.txt", "./cache/q_pre_format", overwrite=TRUE)
@@ -878,6 +893,8 @@ submit$clickElement()
 Sys.sleep(60)
 download <-remDr$findElement(using="xpath", "(//a[contains(text(),'Download')])[3]")
 download$clickElement()
+Sys.sleep(2)
+system('mv -f ~/Downloads/*.one.tsv ./')
 Sys.sleep(2)
 result <- list.files(pattern=".result.one.tsv")
 file.rename(result, "transcript.result.provean.tsv")
@@ -924,7 +941,7 @@ file.move("pp2short.txt", "./original_files/f_predictions", overwrite=TRUE)
 file.move("pp2.csv", "./cache/r_predictions", overwrite=TRUE)
 print("All prediction completed")
 rm("cDrv", "eCaps", "download", "refresh", "submit", "proveanpro", "proveantra", "polyphen", "remDr", "result", 
-   "textarea", "row", "row_4", "pp2short", "pp2", "current_ver")
+   "textarea", "row", "row_4", "pp2short", "pp2")
 Sys.sleep(2)
 
 
@@ -989,6 +1006,7 @@ csv1 <- csv1[c("Sample", "Diagnosis", "Gene", "Variant", "dbSNP", "dbSNP_confirm
                "ClinVar_Variation_ID", "Provean_format", "PolyPhen_format", "Provean_prediction", "SIFT_prediction", "PolyPhen_prediction")]
 Sys.sleep(1)
 
+#===============================================================================
 
 # Count
 print("Exporting aggregate report...")
@@ -1018,6 +1036,19 @@ csv1 <- filter(csv1, Patients_in_this_analysis != 0)
 csv1 <- mutate(csv1, Percentage=Patients_with_variants/Patients_in_this_analysis*100)
 colnames(csv1) <- c("Diagnosis", "Patients in this analysis", "Patients with variants", "Percentage (MAF<1%, including re-run)")
 
+unannotated <- add_columns(unannotated, pool, by="Sample")
+unannotated <- unannotated[c("Sample", "Diagnosis", "Variant", "ID", "QUAL", "FILTER", "Genotype", "Genotype_Quality", "Allele_Deapth", "Total_Depth", 
+                             "Variant_Frequency", "NoiseLevel", "StrandBias", "Uncalled", "INFO", "rsID", "Gene", "HGVS_Consequence", "VEP_Annotation", 
+                             "Protein_ID", "Protein_Consequence", "Transcript_ID", "Transcript_Consequence", "Filters_exomes", "Filters_genomes", 
+                             "Global_AF", "African_African_American_AF", "Latino_Admixed_American_AF", "Ashkenazi_Jewish_AF", "East_Asian_AF", "South_Asian_AF", 
+                             "European_Finnish_AF", "European_Non_Finnish_AF", "Other_AF", "Source", "Protein_ID_for_PP2", "Flags", 
+                             "ClinVar_Clinical_Significance", "ClinVar_Variation_ID")]
+
+large_indel <- separate(large_indel,"Sample",into = c("Sample","Suffix"),sep = "_",remove = FALSE,extra = "merge")
+large_indel <- add_columns(large_indel, pool, by="Sample")
+large_indel <- large_indel[c("Sample", "Diagnosis", "Variant", "ID", "QUAL", "FILTER", "Genotype", "Genotype_Quality", "Allele_Deapth", "Total_Depth", 
+                             "Variant_Frequency", "NoiseLevel", "StrandBias", "Uncalled", "INFO")]
+
 
 # Export
 csv2 <- filter(csv3 ,Global_AF<0.005 & African_African_American_AF<0.005 & Latino_Admixed_American_AF<0.005 & 
@@ -1042,7 +1073,7 @@ Sys.sleep(1)
 now <- Sys.time()
 filename <- paste0(format(now, "%Y-%m-%d_%H%M_"), "BRStudio_export.xlsx")
 sheets <- list("Summary" = csv1, "AF<0.5%"= csv2, "0.5%<AF<1%" = csv3, "Re-run (lowDP)" = csv4, 
-               "Unannotated by GnomAD (check manually)" = unannotated, "Large indels (check BAM)" = large_indel)
+               "Unannotated by GnomAD (check)" = unannotated, "Large indels (check BAM)" = large_indel)
 write_xlsx(sheets, filename)
 file.move("all.csv", "./cache/t_all_merge", overwrite=TRUE)
 rm("csv1", "csv2", "csv3", "csv4", "samples", "samplecount", "variantcount", "colnames", 
@@ -1050,4 +1081,5 @@ rm("csv1", "csv2", "csv3", "csv4", "samples", "samplecount", "variantcount", "co
    "unannotated", "large_indel", "large_indels")
 rm(list = ls())
 print("All done! Good luck analyzing!")
+print("(Please don't forget to check for CFHR1-CFHR3 large deletion and include samples with Amplicon mean coverage < 200 for re-run)")
 Sys.sleep(1)
