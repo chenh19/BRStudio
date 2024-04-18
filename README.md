@@ -7,7 +7,7 @@
 
 ## Setting up the environment
 - [BRStudio](https://github.com/chenh19/BRStudio/blob/master/BRStudio.R) has been tested under [Debian 12.5.0](https://cdimage.debian.org/debian-cd/current-live/amd64/iso-hybrid/). 
-- To set up the environment, please refer to [MyWorkspace](https://github.com/chenh19/MyWorkspace).
+- To set up the environment, please refer to [MyWorkspace](https://github.com/chenh19/MyWorkspace). You might need ```google-chrome-stable_114.0.5735.90-1_amd64.deb``` package, which can be downloaded from [Google](https://dl.google.com/linux/deb/pool/main/g/google-chrome-stable/google-chrome-stable_114.0.5735.90-1_amd64.deb) or [UChicago mirror](http://mirror.cs.uchicago.edu/google-chrome/pool/main/g/google-chrome-stable/google-chrome-stable_114.0.5735.90-1_amd64.deb).
 - If you are using it under other systems, please make sure that all relevant packages are properly installed.  
 
 ## Running the script
