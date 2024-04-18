@@ -1,13 +1,13 @@
 # BRStudio
-**An automated NGS data analyzing tool from [Braunstein Lab](https://www.braunstein.team/).**  
-*Current version: v3.0.5*  
+**An automated NGS data analyzing tool from Braunstein Lab].**  
+*Current version: v3.1.0*  
   
 [![DOI](https://zenodo.org/badge/237900760.svg)](https://doi.org/10.5281/zenodo.6632038)
 
 
 ## Setting up the environment
-- [BRStudio](https://github.com/chenh19/BRStudio/blob/master/BRStudio.R) has been tested under [Kubuntu 22.04 LTS](https://kubuntu.org/) and other linux systems based on Ubuntu 22.04 LTS. 
-- To set up the environment, simply download the [latest release](https://github.com/chenh19/BRStudio/releases), extract and open the master folder in terminal, then execute [setup.sh](https://github.com/chenh19/BRStudio/blob/master/setup.sh) with ```bash ./setup.sh```.
+- [BRStudio](https://github.com/chenh19/BRStudio/blob/master/BRStudio.R) has been tested under [Debian 12.5.0](https://cdimage.debian.org/debian-cd/current-live/amd64/iso-hybrid/). 
+- To set up the environment, please refer to [MyWorkspace](https://github.com/chenh19/MyWorkspace).
 - If you are using it under other systems, please make sure that all relevant packages are properly installed.  
 
 ## Running the script
