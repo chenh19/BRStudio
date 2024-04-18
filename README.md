@@ -2,7 +2,7 @@
 **An automated NGS data analyzing tool from Braunstein Lab].**  
 *Current version: v3.1.0*  
   
-[![DOI](https://zenodo.org/badge/237900760.svg)](https://doi.org/10.5281/zenodo.6632038)
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.10989791.svg)](https://zenodo.org/records/10989791)
 
 
 ## Setting up the environment
